@@ -1,0 +1,120 @@
+# IGNIS · plataforma completa en un solo comando:  docker compose up -d --build
+#
+#   Internet ──► proxy (Caddy, HTTPS automático)
+#                 ├── /               ► alerta       IGNIS Alerta: celulares, centro de control, explorador, 3D, eventos
+#                 └── /laboratorio/   ► laboratorio  Streamlit: análisis avanzado de eventos
+#   Red privada (sin puertos al exterior):
+#                 alerta / laboratorio ─► motor (clustering) ─► datos (API FIRMS) ─► postgres
+name: ignis
+
+x-reinicio: &reinicio
+  restart: unless-stopped
+  networks: [privada]
+
+services:
+  postgres:
+    <<: *reinicio
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ignis}
+      POSTGRES_USER: ${POSTGRES_USER:-ignis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    volumes:
+      - pg_datos:/var/lib/postgresql/data
+      - ./datos/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  datos:
+    <<: *reinicio
+    build: ./datos
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-ignis}
+      PGUSER: ${POSTGRES_USER:-ignis}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      DATA_DIR: /data
+      AUTO_INGEST: ${AUTO_INGEST:-true}
+    volumes:
+      - ./datos/data:/data:ro
+    healthcheck:   # paciente: durante la primera carga de CSV la API responde más lento
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=8)"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
+
+  motor:
+    <<: *reinicio
+    build:
+      context: ./eventos
+      dockerfile: Dockerfile.clustering
+    depends_on: [datos]   # el motor espera a la API por su cuenta; no bloquea el arranque
+    environment:
+      DATA_API_URL: http://datos:8000
+      MAX_DETECTIONS: ${MAX_DETECTIONS:-100000}
+
+  laboratorio:
+    <<: *reinicio
+    build:
+      context: ./eventos
+      dockerfile: Dockerfile.streamlit
+    depends_on: [motor]
+    environment:
+      CLUSTER_API_URL: http://motor:8000
+      IGNIS_URL: ""
+      STREAMLIT_SERVER_BASE_URL_PATH: laboratorio
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+
+  alerta:
+    <<: *reinicio
+    build: ./alerta   # independiente: funciona aunque datos/motor sigan arrancando
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      CLUSTER_API_URL: http://motor:8000
+      DATA_API_URL: http://datos:8000
+      LAB_URL: /laboratorio/
+      IGNIS_CODIGO: ${IGNIS_CODIGO:-CONAFOR-2026}
+      CONTROL_CLAVE: ${CONTROL_CLAVE:-}
+    volumes:
+      - ./alerta/data:/app/data:ro
+
+  proxy:
+    <<: *reinicio
+    image: caddy:2.8.4-alpine
+    depends_on:
+      alerta: { condition: service_healthy }
+      laboratorio: { condition: service_started }
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+
+  # Enlace público temporal con HTTPS sin servidor ni dominio (Cloudflare Quick Tunnel).
+  # Se activa con:  docker compose --profile tunel up -d   (los lanzadores lo hacen solos)
+  tunel:
+    <<: *reinicio
+    image: cloudflare/cloudflared:2026.10.1
+    profiles: [tunel]
+    depends_on: [proxy]
+    command: tunnel --no-autoupdate --url http://proxy:80
+
+volumes:
+  pg_datos:
+  caddy_datos:
+  caddy_config:
+
+networks:
+  privada:

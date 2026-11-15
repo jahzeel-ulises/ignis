@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IGNIS · Centro de control</title>
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css?v=20">
+<link rel="stylesheet" href="/static/wow.css?v=20">
+<link rel="stylesheet" href="/static/sala.css?v=20">
+<link rel="stylesheet" href="/static/plan.css?v=30">
+<style>
+  body { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
+  aside { background: var(--sup); border-right: 1px solid var(--borde); padding: 20px; overflow: auto; display: flex; flex-direction: column; gap: 14px; z-index: 2; }
+  #mapa { position: relative; height: 100vh; left: 0 !important; inset: auto; }
+  .logo { font-size: 30px; } .llama { width: 22px; height: 30px; }
+  .qr { display: flex; gap: 14px; align-items: center; background: #fff; border-radius: 16px; padding: 12px; color: #111; }
+  .qr p { margin: 0; font-size: 13px; } .qr b { font-size: 15px; word-break: break-all; }
+  .qr-txt { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .qr-editar { align-self: flex-start; margin-top: 2px; border: 0; background: none; padding: 4px 0; color: #b4400f; font: 600 12.5px var(--f-sans); text-decoration: underline; cursor: pointer; }
+  .qr-form { display: flex; gap: 6px; } .qr-form input { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid #d6cfc6; border-radius: 8px; font: 13px var(--f-mono); color: #111; background: #fff; }
+  .qr-form input.mal { border-color: #dc2626; } .qr-form button { border: 0; border-radius: 8px; padding: 0 12px; background: #e8561f; color: #fff; font-weight: 600; cursor: pointer; }
+  .qr-aviso { margin: -4px 0 0; padding: 10px 12px; border-radius: 10px; background: #7f1d1d33; border: 1px solid #ff3b3066; color: var(--tinta2); font-size: 13px; line-height: 1.45; }
+  .qr-aviso b { color: var(--tinta); } .qr-aviso code { font-family: var(--f-mono); background: var(--sup2); padding: 1px 5px; border-radius: 4px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stats div { background: var(--sup2); border-radius: 12px; padding: 10px 4px; text-align: center; }
+  .stats b { font-size: 26px; display: block; } .stats small { color: var(--tenue); font-size: 11px; white-space: nowrap; }
+  label { font-size: 13px; color: var(--tenue); display: flex; justify-content: space-between; }
+  input[type=range] { width: 100%; accent-color: var(--brasa); }
+  select { background: var(--sup2); color: var(--tinta); border: 1px solid var(--borde); border-radius: 10px; padding: 8px; }
+  .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #btn-lanzar { font-size: 20px; padding: 18px; }
+  #btn-lanzar:disabled { opacity: .5; }
+  .onda { border-radius: 50%; border: 3px solid #ff6a2b; box-shadow: 0 0 40px #ff6a2b, inset 0 0 40px #ff6a2b66; pointer-events: none; }
+  .feed-t { margin: 0 0 6px; color: var(--brasa2); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .feed { list-style: none; margin: 0; padding: 0; max-height: 190px; overflow: auto; font-size: 13px; }
+  .feed li { position: relative; padding: 7px 10px 7px 24px; margin-bottom: 4px; background: var(--sup2); border-radius: 8px; animation: entra .35s ease; color: var(--tinta2); }
+  .feed li::before { content: ""; position: absolute; left: 10px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--tenue); } .feed li.rojo::before { background: var(--rojo); } .feed li.verde::before { background: var(--verde); } .feed li.vacio::before { display: none; } .feed li.vacio { color: var(--tenue); }
+  .feed time { color: var(--tenue); margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .zona h4 { margin: 0 0 6px; color: var(--brasa2); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .zona p { margin: 0 0 8px; color: var(--tinta2); font-size: 14px; line-height: 1.45; }
+  #z-cal { width: 100%; }
+  .leyenda { font-size: 12px; color: var(--tenue); display: flex; gap: 12px; flex-wrap: wrap; }
+  .leyenda span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; background: var(--c); vertical-align: -1px; }
+
+  /* ---- wow + responsive del centro de control */
+  .qr { position: relative; isolation: isolate; }
+  .qr::before { content: ''; position: absolute; inset: -2px; z-index: -1; border-radius: 18px;
+    background: conic-gradient(from var(--ang), #ff6a2b, #ffb020 25%, transparent 45%, transparent 70%, #ff6a2b); animation: barrido 4s linear infinite; }
+  .qr::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: 16px; background: #fff; }
+  .qr img { display: block; }
+  .stats div { position: relative; overflow: hidden; }
+  .stats b { display: block; }
+  .feed-t { display: flex; align-items: center; gap: 8px; }
+  .feed-t::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--rojo); animation: latidoRojo 1.4s infinite; }
+  @keyframes latidoRojo { 0% { box-shadow: 0 0 0 0 #ff3b3099; } 100% { box-shadow: 0 0 0 9px #ff3b3000; } }
+  .radar { position: absolute; inset: 0; z-index: 450; pointer-events: none; opacity: 0; transition: opacity .8s;
+    background: conic-gradient(from var(--ang) at var(--rx, 50%) var(--ry, 50%), transparent 0 320deg, #ff6a2b30 350deg, #ff6a2b66 360deg); animation: barrido 3.2s linear infinite; }
+  body.en-incendio .radar { opacity: 1; }
+  body.en-incendio::after { content: ''; position: fixed; inset: 0; z-index: 3000; pointer-events: none; box-shadow: inset 0 0 90px 10px #ff3b3077; animation: bordeIncendio 2.4s ease-out forwards; }
+  @keyframes bordeIncendio { 0%, 30% { opacity: 1; } 100% { opacity: 0; } }
+  .choque { position: fixed; z-index: 3001; width: 20px; height: 20px; margin: -10px; border-radius: 50%; border: 3px solid #ff6a2b; pointer-events: none;
+    box-shadow: 0 0 30px #ff6a2b; animation: choque .9s cubic-bezier(.2,.6,.3,1) forwards; }
+  @keyframes choque { to { transform: scale(40); opacity: 0; border-width: .5px; } }
+  #btn-lanzar:not(:disabled) { box-shadow: 0 10px 34px #e8561f55; }
+  #btn-lanzar:not(:disabled):hover { transform: translateY(-1px); }
+  @media (max-width: 1100px) and (min-width: 861px) { body { grid-template-columns: 340px 1fr; } }
+  @media (max-width: 860px) {
+    html, body { height: auto; overflow: auto; }
+    body { grid-template-columns: 1fr; grid-template-rows: 46svh auto; height: auto; min-height: 100svh; }
+    #mapa { grid-row: 1; height: 46svh; }
+    aside { grid-row: 2; border-right: 0; border-top: 1px solid var(--borde); overflow: visible; padding: 18px 16px max(24px, env(safe-area-inset-bottom)); }
+    .logo { font-size: 26px; flex-wrap: wrap; }
+    .qr { padding: 10px; } .qr img { width: 92px; height: 92px; }
+    .stats b { font-size: 22px; } .stats small { font-size: 10px; }
+    .feed { max-height: 220px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .radar, .qr::before { animation: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1.2-4.2 4.3-6 8-6s6.8 1.8 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 4.5 5.6v6c0 4.6 3.1 8.2 7.5 9.6 4.4-1.4 7.5-5 7.5-9.6v-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m8.6 12.2 2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.5" fill="currentColor"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<aside>
+  <div class="logo"><span class="llama"></span>IGNIS <small style="font-size:14px;color:var(--tenue);font-weight:500">centro de control</small><span style="margin-left:auto"><label class="fire-switch" title="Modo día / noche"><input type="checkbox" id="tema" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-estrellas"></span><span class="fs-chispas"><i></i><i></i><i></i><i></i><i></i></span><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="fs-c1"/><stop offset="1" class="fs-c2"/></linearGradient></defs><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="url(#gl)"/><path d="M12 21.6a3.4 3.4 0 0 1-3.4-3.4c0-2.2 2-3.2 3-5.4.6 1.7 3.8 3 3.8 5.4a3.4 3.4 0 0 1-3.4 3.4z" class="fs-nucleo"/></svg></span></span></label></span></div>
+  <div class="qr"><div id="qr"></div><div class="qr-txt"><p>Escanea para unirte</p><b id="url"></b>
+    <button type="button" class="qr-editar" id="url-editar">Cambiar dirección</button>
+    <form class="qr-form oculto" id="url-form"><input id="url-campo" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Dirección para los celulares"><button type="submit">Usar</button></form></div></div>
+  <p class="qr-aviso oculto" id="url-aviso" role="alert"></p>
+  <div class="stats">
+    <div><b id="n-total">0</b><small>conectados</small></div>
+    <div><b id="n-brig">0</b><small>especializados</small></div>
+    <div><b id="n-alert">0</b><small>alertados</small></div>
+    <div><b id="n-salvo">0</b><small>a salvo</small></div>
+  </div>
+  <p class="nota" style="margin:0">1. Toca el mapa para elegir dónde inicia el incendio. 2. Lanza la alerta. 3. Avanza el tiempo para ver cómo se recalculan las rutas.</p>
+  <label>Mes simulado <select id="mes"></select></label>
+  <label>Radio de peligro <span id="v-radio">10 km</span></label>
+  <input id="radio" type="range" min="2" max="40" value="10">
+  <label>Velocidad de la onda de alerta <span id="v-onda">2 km/s</span></label>
+  <input id="onda" type="range" min="0.5" max="6" step="0.5" value="2">
+  <button id="btn-lanzar" class="btn-primario"><svg class="ic"><use href="#i-flame"/></svg>Lanzar alerta</button>
+  <div class="fila">
+    <button id="btn-avanzar" class="btn-sec">Avanzar 30 min</button>
+    <button id="btn-fin" class="btn-sec">Terminar incendio</button>
+  </div>
+  <div id="ctx" class="datos"></div>
+  <div><h4 class="feed-t">En vivo</h4><ul id="feed" class="feed"><li class="vacio">Esperando el primer incendio…</li></ul></div>
+  <div class="zona">
+    <h4>La zona del incendio en la historia</h4>
+    <p id="z-frase">Elige un punto en el mapa.</p>
+    <canvas id="z-cal" width="600" height="220"></canvas>
+  </div>
+  <div class="leyenda"><span style="--c:#60a5fa">usuario</span><span style="--c:#ffb020">especializado</span><span style="--c:#ff3b30">alertado</span><span style="--c:#22c55e">a salvo</span></div>
+</aside>
+<div id="mapa"></div>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/comun.js?v=20"></script>
+<script src="/static/wow.js?v=20"></script>
+<script>
+const $ = s => document.querySelector(s);
+let punto = { ...IG.DEMO }, fuego = null, usuarios = [], ws;
+const mapa = L.map('mapa', { zoomControl: true }).setView([IG.DEMO.lat, IG.DEMO.lon], 9);
+IG.tema(mapa, IG.mapaBase(mapa, 'Oscuro (Esri)'));
+const capaU = L.layerGroup().addTo(mapa);
+let mPunto = L.marker([punto.lat, punto.lon], { icon: L.divIcon({ className: '', html: '<div class="foco" style="opacity:.55"></div>', iconSize: [34, 34] }) }).addTo(mapa);
+let cRadio, cCono, cFrente, onda, ondaAnim;
+
+IG.MESES_L.forEach((m, i) => $('#mes').insertAdjacentHTML('beforeend', `<option value="${i + 1}">${m}</option>`));
+$('#mes').value = 4;
+fetch('/api/info').then(r => r.json()).then(i => {
+  $('#mes').value = i.mes;
+  let guardada = null; try { guardada = localStorage.getItem('ignis-url-celulares'); } catch (e) {}
+  ponerUrl(guardada || i.url, !!guardada);
+});
+// QR: avisa si la dirección no sirve para celulares y deja escribir la correcta (se recuerda en este equipo).
+function ponerUrl(url, manual) {
+  url = url.replace(/\/+$/, '');
+  $('#url').textContent = url;
+  $('#qr').innerHTML = `<img width="112" height="112" alt="QR para unirse: ${IG.esc(url)}" src="/api/qr.svg?url=${encodeURIComponent(url)}">`;
+  const host = (url.split('//')[1] || '').split(/[:/]/)[0];
+  const mala = /^(localhost|127\.|0\.0\.0\.0|172\.(1[6-9]|2\d|3[01])\.|10\.0\.2\.|$)/.test(host);
+  $('#url-aviso').classList.toggle('oculto', !mala);
+  $('#url-aviso').innerHTML = mala ? `<b>Este QR no funcionará en los celulares</b>: "${IG.esc(host || url)}" solo existe dentro de esta computadora. Toca <b>Cambiar dirección</b> y escribe la IP de esta computadora en la Wi-Fi (Mac: Ajustes → Wi-Fi → Detalles; Windows: <code>ipconfig</code>), por ejemplo <code>http://192.168.1.20</code>.` : '';
+  try { manual ? localStorage.setItem('ignis-url-celulares', url) : localStorage.removeItem('ignis-url-celulares'); } catch (e) {}
+}
+$('#url-editar').onclick = () => { $('#url-form').classList.toggle('oculto'); $('#url-campo').value = $('#url').textContent; $('#url-campo').focus(); $('#url-campo').select(); };
+$('#url-form').onsubmit = e => {
+  e.preventDefault();
+  let v = $('#url-campo').value.trim(); if (!v) return;
+  if (!/^https?:\/\//.test(v)) v = 'http://' + v;
+  if (!/^https?:\/\/[\w.\-\[\]:]{1,120}\/?$/.test(v)) { $('#url-campo').classList.add('mal'); return; }
+  $('#url-campo').classList.remove('mal'); $('#url-form').classList.add('oculto'); ponerUrl(v, true);
+};
+$('#radio').oninput = e => { $('#v-radio').textContent = e.target.value + ' km'; dibujarRadio(); };
+$('#onda').oninput = e => $('#v-onda').textContent = e.target.value + ' km/s';
+$('#mes').onchange = e => { ws.send(JSON.stringify({ type: 'mes', mes: +e.target.value })); historia(); };
+mapa.on('click', e => { if (fuego) return; punto = { lat: e.latlng.lat, lon: e.latlng.lng }; mPunto.setLatLng(e.latlng); dibujarRadio(); historia(); });
+
+function dibujarRadio() {
+  if (cRadio) mapa.removeLayer(cRadio);
+  const c = fuego || punto;
+  cRadio = L.circle([c.lat, c.lon], { radius: (fuego ? fuego.radio_km : +$('#radio').value) * 1000, color: '#ff4d2e', weight: 1.5, fillOpacity: fuego ? .14 : .05, dashArray: fuego ? null : '6 6' }).addTo(mapa);
+}
+async function historia() {
+  const c = fuego || punto;
+  const h = await (await fetch(`/api/historia?lat=${c.lat}&lon=${c.lon}&mes=${$('#mes').value}`)).json();
+  $('#z-frase').innerHTML = IG.fraseHistoria(h);
+  $('#z-cal').style.display = h.available ? 'block' : 'none';
+  if (h.available) IG.dibujarCalendario($('#z-cal'), h.matriz, h.mes);
+}
+
+function conectar() {
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/control');
+  ws.onclose = () => setTimeout(conectar, 1500);
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'users') {
+      usuarios = m.users;
+      const nuevo = JSON.stringify(m.fire) !== JSON.stringify(fuego);
+      if (m.fire && (!fuego || m.fire.id !== fuego.id)) lanzarOnda(m.fire);
+      fuego = m.fire; if (nuevo) { pintarFuego(); }
+      pintarUsuarios();
+    }
+  };
+}
+const visto = {};
+function bitacora(txt, tipo = '') {
+  const f = $('#feed'); f.querySelector('.vacio')?.remove();
+  const li = document.createElement('li'); li.className = tipo; li.innerHTML = `<time>${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time>${txt}`;
+  f.prepend(li); while (f.children.length > 30) f.lastChild.remove();
+}
+function pintarUsuarios() {
+  usuarios.forEach(u => { const k = visto[u.id] || {};
+    if (!k.conectado) bitacora(`<b>${IG.esc(u.name)}</b> se unió como ${u.role === 'brigadista' ? 'especializado' + (u.verificado ? ' (verificado)' : '') : 'ciudadano'}`);
+    if (u.alerted && !k.alerted && !u.safe) bitacora(`<b>${IG.esc(u.name)}</b> recibió la alerta${u.dist_km != null ? ' a ' + u.dist_km + ' km' : ''}${window.t0Onda ? ' · ' + ((performance.now() - t0Onda) / 1000).toFixed(1) + ' s' : ''}`, 'rojo');
+    if (u.safe && !k.safe) bitacora(`<b>${IG.esc(u.name)}</b> está a salvo`, 'verde');
+    visto[u.id] = { conectado: true, alerted: u.alerted, safe: u.safe }; });
+  capaU.clearLayers();
+  usuarios.filter(u => u.lat != null).forEach(u => {
+    const col = u.safe ? '#22c55e' : u.alerted ? '#ff3b30' : (u.role === 'brigadista' ? '#ffb020' : '#60a5fa');
+    L.circleMarker([u.lat, u.lon], { radius: u.alerted ? 9 : 7, color: '#fff', weight: 2, fillColor: col, fillOpacity: 1 })
+      .bindTooltip(`${IG.esc(u.name)}${u.dist_km != null ? ' · ' + u.dist_km + ' km' : ''}`).addTo(capaU);
+  });
+  $('#n-total').textContent = usuarios.length;
+  $('#n-brig').textContent = usuarios.filter(u => u.role === 'brigadista').length;
+  $('#n-alert').textContent = usuarios.filter(u => u.alerted).length;
+  $('#n-salvo').textContent = usuarios.filter(u => u.safe).length;
+}
+function pintarFuego() {
+  [cCono, cFrente].forEach(c => c && mapa.removeLayer(c));
+  $('#btn-lanzar').disabled = !!fuego;
+  if (!fuego) { mPunto.setLatLng([punto.lat, punto.lon]); mPunto.getElement().firstChild.style.opacity = .55; dibujarRadio(); $('#ctx').innerHTML = ''; return; }
+  mPunto.setLatLng([fuego.lat, fuego.lon]); mPunto.getElement().firstChild.style.opacity = 1;
+  dibujarRadio();
+  cFrente = IG.frente(mapa, fuego).addTo(mapa);
+  const largo = Math.max(1.5, fuego.prop.vel_kmh * 2), p = [[fuego.lat, fuego.lon]];
+  for (let a = -25; a <= 25; a += 5) { const q = IG.mover(fuego, fuego.prop.rumbo + a, largo); p.push([q.lat, q.lon]); }
+  cCono = L.polygon(p, { color: '#ffb020', weight: 1, fillColor: '#ffb020', fillOpacity: .25, dashArray: '4 4' }).addTo(mapa);
+  const c = fuego.ctx;
+  $('#ctx').innerHTML = `
+    <div><small>Viento ${c.viento_real ? '(real)' : '(simulado)'}</small><b>${Math.round(c.viento_kmh)} km/h → ${IG.cardinal((c.viento_desde + 180) % 360)}</b></div>
+    <div><small>Propagación est.</small><b>${fuego.prop.vel_kmh} km/h → ${IG.cardinal(fuego.prop.rumbo)}</b></div>
+    <div><small>Pendiente</small><b>${c.pendiente_pct != null ? c.pendiente_pct + '%' : 'sin dato'}</b></div>
+    <div><small>Avance</small><b>${fuego.avance_min} min</b></div>`;
+}
+// Onda de alerta que se expande a la velocidad configurada (como la alerta sísmica).
+function lanzarOnda(f) {
+  if (onda) mapa.removeLayer(onda); cancelAnimationFrame(ondaAnim);
+  const max = Math.max(f.radio_km * 2, ...usuarios.filter(u => u.lat != null).map(u => IG.dist(f, u))) + 2;
+  const t0 = performance.now(); window.t0Onda = t0;
+  bitacora(`Incendio lanzado · radio ${f.radio_km} km · viento ${Math.round(f.ctx.viento_kmh)} km/h`, 'rojo');
+  onda = L.circle([f.lat, f.lon], { radius: 10, color: '#ff6a2b', weight: 4, fill: false, opacity: .9 }).addTo(mapa);
+  const paso = now => {
+    const km = (now - t0) / 1000 * f.onda_kms;
+    if (km > max) { mapa.removeLayer(onda); onda = null; return; }
+    onda.setRadius(km * 1000); onda.setStyle({ opacity: .9 * (1 - km / max) + .1 });
+    ondaAnim = requestAnimationFrame(paso);
+  };
+  ondaAnim = requestAnimationFrame(paso);
+}
+$('#btn-lanzar').onclick = () => ws.send(JSON.stringify({ type: 'fire', lat: punto.lat, lon: punto.lon, radio_km: +$('#radio').value, onda_kms: +$('#onda').value }));
+$('#btn-avanzar').onclick = () => ws.send(JSON.stringify({ type: 'avanzar', min: 30 }));
+$('#btn-fin').onclick = () => { ws.send(JSON.stringify({ type: 'fin' })); bitacora('Incendio terminado', 'verde'); window.t0Onda = null; };
+$('#btn-avanzar').addEventListener('click', () => bitacora('El fuego avanzó 30 min'));
+dibujarRadio(); historia(); conectar();
+window.addEventListener('ignis-tema', historia);
+
+// ---- wow: radar sobre el foco, onda de choque al lanzar y cifras que brincan
+const radar = document.createElement('div'); radar.className = 'radar'; document.getElementById('mapa').appendChild(radar);
+const ubicarRadar = () => { const c = fuego || punto, pt = mapa.latLngToContainerPoint([c.lat, c.lon]);
+  radar.style.setProperty('--rx', pt.x + 'px'); radar.style.setProperty('--ry', pt.y + 'px'); };
+mapa.on('move zoom', ubicarRadar);
+new MutationObserver(() => { document.body.classList.toggle('en-incendio', $('#btn-lanzar').disabled); ubicarRadar(); })
+  .observe($('#btn-lanzar'), { attributes: true, attributeFilter: ['disabled'] });
+$('#btn-lanzar').addEventListener('click', e => {
+  if (WOW.RM) return;
+  const r = e.currentTarget.getBoundingClientRect(), d = document.createElement('div'); d.className = 'choque';
+  d.style.left = r.left + r.width / 2 + 'px'; d.style.top = r.top + r.height / 2 + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 950);
+});
+document.querySelectorAll('.stats b').forEach(b => { let previo = b.textContent;
+  new MutationObserver(() => { if (b.textContent !== previo) { previo = b.textContent; WOW.bump(b); } }).observe(b, { childList: true, characterData: true, subtree: true }); });
+ubicarRadar();
+</script>
+<script src="/static/sala.js?v=20"></script>
+<script src="/static/plan.js?v=30"></script>
+</body>
+</html>

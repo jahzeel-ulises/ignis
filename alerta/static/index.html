@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0807">
+<meta name="description" content="IGNIS: alerta temprana de incendios con 24 años de fuego de NASA FIRMS armonizado MODIS→VIIRS, alerta en vivo tipo sismo, incendios reconstruidos día por día y vista 3D.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="IGNIS · alerta temprana de incendios">
+<meta property="og:description" content="24 años de fuego en México (NASA FIRMS), alerta en vivo que viaja como onda y la historia de cada incendio, día por día.">
+<meta property="og:image" content="/static/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IGNIS">
+<title>IGNIS · Alerta de incendios</title>
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css?v=20">
+<link rel="stylesheet" href="/static/wow.css?v=20">
+<link rel="stylesheet" href="/static/plan.css?v=30">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1.2-4.2 4.3-6 8-6s6.8 1.8 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 4.5 5.6v6c0 4.6 3.1 8.2 7.5 9.6 4.4-1.4 7.5-5 7.5-9.6v-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m8.6 12.2 2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.5" fill="currentColor"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<!-- 1. Bienvenida y perfil -->
+<section id="s-inicio" class="pantalla activa">
+  <div class="escenario" id="escenario" data-i="0">
+    <canvas id="tl-canvas" aria-label="Animación de 24 años de actividad de fuego en México"></canvas>
+    <canvas id="brasas" aria-hidden="true"></canvas>
+    <p class="sello"><svg class="marca-ico"><use href="#i-flame"/></svg>IGNIS<span class="sello-larga"> · alerta temprana de incendios</span></p>
+    <button type="button" class="saltar" id="btn-saltar">Saltar</button>
+    <div class="slides" id="slides" tabindex="0" role="region" aria-roledescription="carrusel" aria-label="Qué es IGNIS">
+      <article class="slide actual" aria-roledescription="diapositiva" aria-label="1 de 4">
+        <div class="slide-txt">
+          <div class="portada-mes"><span id="pt-mes">—</span><small id="pt-sensor">MODIS</small></div>
+          <h2 class="slide-t" data-split>24 años de fuego en una sola escala</h2>
+          <p class="portada-dato"><b id="pt-n">0</b> eventos de fuego armonizados en México este mes</p>
+          <div class="portada-barra"><i id="pt-prog"></i></div>
+          <p class="portada-pie">NASA FIRMS · MODIS 2002–2011 y VIIRS 2012–hoy</p>
+        </div>
+      </article>
+      <article class="slide" aria-roledescription="diapositiva" aria-label="2 de 4">
+        <div class="ilus ilus-frp" aria-hidden="true"><svg id="sl-frp" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="slide-txt">
+          <h2 class="slide-t" data-split>Mide qué tan fuerte arde</h2>
+          <p class="slide-p" id="sl-frp-txt">La potencia radiada (FRP) de cada incendio, armonizada MODIS→VIIRS: así se ve cuándo el fuego arde con más fuerza en México.</p>
+        </div>
+      </article>
+      <article class="slide" aria-roledescription="diapositiva" aria-label="3 de 4">
+        <div class="ilus ilus-onda" aria-hidden="true">
+          <div class="io-zona">
+            <span class="io-rad doble"></span><span class="io-rad"></span>
+            <i class="io-anillo"></i><i class="io-anillo"></i><i class="io-anillo"></i>
+            <span class="io-foco"></span>
+            <span class="io-cel c1"></span><span class="io-cel c2"></span><span class="io-cel c3"></span>
+          </div>
+        </div>
+        <div class="slide-txt">
+          <h2 class="slide-t" data-split>La alerta viaja como una onda</h2>
+          <p class="slide-p">Cuando se reporta un incendio, cada celular suena según su distancia al foco: rojo dentro del radio de peligro, ámbar al doble.</p>
+        </div>
+      </article>
+      <article class="slide" aria-roledescription="diapositiva" aria-label="4 de 4">
+        <div class="ilus ilus-ruta" aria-hidden="true">
+          <svg viewBox="0 0 300 230">
+            <path class="ir-viento" d="M262 30 L196 96"/><path class="ir-viento" d="M286 70 L220 136" style="animation-delay:-.6s"/><path class="ir-viento" d="M238 12 L172 78" style="animation-delay:-1.1s"/>
+            <circle class="ir-frente" cx="228" cy="72" r="52"/>
+            <circle cx="228" cy="72" r="16" fill="#ff6a2b" style="filter:drop-shadow(0 0 14px #ff5a1f)"/>
+            <circle cx="228" cy="72" r="7" fill="#fff3c4"/>
+            <path class="ir-ruta" d="M130 132 C 110 150, 96 150, 82 166 S 52 190, 34 196"/>
+            <circle class="ir-pulso" cx="130" cy="132" r="10"/>
+            <circle class="ir-yo" cx="130" cy="132" r="9"/>
+            <g class="ir-meta"><circle cx="34" cy="196" r="13" fill="#22c55e"/><path d="m28 196 4.5 4.5L41 191" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+          </svg>
+        </div>
+        <div class="slide-txt">
+          <h2 class="slide-t" data-split>Sabes hacia dónde salir</h2>
+          <p class="slide-p">Ruta lejos del frente, viento y pendiente en vivo, y la historia de fuego de tu zona mes a mes.</p>
+        </div>
+      </article>
+    </div>
+    <div class="slides-nav">
+      <div class="puntos" role="tablist" aria-label="Diapositivas">
+        <button type="button" role="tab" aria-label="Diapositiva 1" class="actual"><i></i></button>
+        <button type="button" role="tab" aria-label="Diapositiva 2"><i></i></button>
+        <button type="button" role="tab" aria-label="Diapositiva 3"><i></i></button>
+        <button type="button" role="tab" aria-label="Diapositiva 4"><i></i></button>
+      </div>
+      <button type="button" class="btn-sig" id="btn-sig"><span>Siguiente</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+  <form id="login" class="login" autocomplete="off" novalidate>
+    <div class="login-cab"><div class="marca"><svg class="marca-ico"><use href="#i-flame"/></svg>IGNIS</div>
+      <label class="fire-switch" title="Modo día / noche"><input type="checkbox" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-estrellas"></span><span class="fs-chispas"><i></i><i></i><i></i><i></i><i></i></span><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gl2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="fs-c1"/><stop offset="1" class="fs-c2"/></linearGradient></defs><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="url(#gl2)"/><path d="M12 21.6a3.4 3.4 0 0 1-3.4-3.4c0-2.2 2-3.2 3-5.4.6 1.7 3.8 3 3.8 5.4a3.4 3.4 0 0 1-3.4 3.4z" class="fs-nucleo"/></svg></span></span></label></div>
+    <h1 data-split>Entra a la red de alerta</h1>
+    <p class="sub">Recibe la alerta si un incendio se acerca a ti, con la ruta para alejarte y la historia de fuego de tu zona.</p>
+    <label class="lbl" for="nombre">Nombre</label>
+    <input id="nombre" class="campo" placeholder="¿Cómo te llamas?" maxlength="24" required>
+    <span class="lbl">Perfil</span>
+    <div class="roles" role="radiogroup">
+      <button type="button" class="rol spot sel" data-rol="usuario" role="radio" aria-checked="true">
+        <svg class="rol-ico"><use href="#i-user"/></svg><b>Ciudadano</b><small>Alertas, distancia y ruta de salida</small>
+      </button>
+      <button type="button" class="rol spot" data-rol="brigadista" role="radio" aria-checked="false">
+        <svg class="rol-ico"><use href="#i-shield"/></svg><b>Personal especializado</b><small>Terreno, propagación y personas en zona</small>
+      </button>
+    </div>
+    <div id="cred" class="cred oculto">
+      <label class="lbl" for="codigo">Código de credencial</label>
+      <input id="codigo" class="campo mono" placeholder="CONAFOR-0000" maxlength="20">
+      <small class="pista">Demo: <code>CONAFOR-2026</code>. En producción se valida contra el padrón de CONAFOR o Protección Civil.</small>
+    </div>
+    <p id="login-error" class="error" role="alert"></p>
+    <button id="btn-entrar" class="btn-primario" type="submit">Entrar y activar alertas</button>
+    <p class="en-linea"><span class="punto"></span><span id="en-linea">Conectando…</span></p>
+    <nav class="explora" aria-label="Explorar sin entrar">
+      <span>O explora sin entrar</span>
+      <a href="/eventos">Incendios reconstruidos</a><a href="/static/3d.html">24 años en 3D</a><a href="/laboratorio/">Laboratorio</a>
+    </nav>
+  </form>
+</section>
+
+<!-- 2. Principal -->
+<section id="s-mapa" class="pantalla">
+  <div id="mapa"></div>
+  <div class="barra-sup">
+    <div id="chip-estado" class="chip ok"><span class="punto"></span><span id="txt-estado">Conectado · sin alertas</span></div>
+    <div class="der"><label class="fire-switch" title="Modo día / noche"><input type="checkbox" id="tema" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-estrellas"></span><span class="fs-chispas"><i></i><i></i><i></i><i></i><i></i></span><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="fs-c1"/><stop offset="1" class="fs-c2"/></linearGradient></defs><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="url(#gl)"/><path d="M12 21.6a3.4 3.4 0 0 1-3.4-3.4c0-2.2 2-3.2 3-5.4.6 1.7 3.8 3 3.8 5.4a3.4 3.4 0 0 1-3.4 3.4z" class="fs-nucleo"/></svg></span></span></label><div id="chip-rol" class="chip"></div></div>
+  </div>
+  <div id="aviso-ubic" class="aviso-ubic oculto">
+    <b>Toca el mapa para fijar tu ubicación</b>
+    <button id="btn-demo-ubic" class="btn-sec">Ubicarme en la zona de demo</button>
+  </div>
+  <div id="hoja" class="hoja">
+    <div class="asa"></div>
+    <div id="ruta-card" class="ruta-card oculto"></div>
+    <div class="tabs"><button data-tab="zona" class="sel">Mi zona</button><button data-tab="explorar">Explorar historia</button></div>
+    <div id="tab-zona">
+    <div id="hoja-historia">
+      <p class="hoja-titulo">Tu zona en la historia</p>
+      <p id="hist-frase" class="hist-frase">Fija tu ubicación para ver la historia de fuego de tu zona.</p>
+      <div id="hist-esq" class="esqueleto oculto"><i></i><i></i><i style="width:60%"></i><div class="esq-cal"></div></div>
+      <canvas id="hist-cal" width="600" height="200"></canvas>
+      <div id="hist-frp" class="hist-frp oculto">
+        <p class="hoja-titulo">Intensidad típica por mes · FRP</p>
+        <canvas id="hist-frp-cv" aria-label="Intensidad típica del fuego en tu zona por mes"></canvas>
+      </div>
+      <p id="hist-fuente" class="fuente"></p>
+      <button id="btn-tarjeta" class="btn-sec btn-tarjeta oculto" type="button"><svg class="ic"><use href="#i-down"/></svg>Crear tarjeta de mi zona</button>
+    </div>
+    <div id="hoja-brig" class="oculto">
+      <p class="hoja-titulo">Panel especializado</p>
+      <div id="brig-datos" class="datos"></div>
+    </div>
+    </div>
+    <div id="tab-explorar" class="oculto">
+      <div class="linea-tiempo">
+        <button id="tl-play" class="tl-play" aria-label="Reproducir">▶</button>
+        <div class="tl-centro">
+          <div class="tl-etq"><b id="tl-fecha">Mayo 2019</b><span id="tl-sensor" class="sensor">VIIRS</span></div>
+          <input id="tl-rango" type="range" min="0" max="10" value="0" aria-label="Mes">
+        </div>
+      </div>
+      <p class="nota" style="margin:2px 0 14px">El mapa muestra la actividad de fuego armonizada de cada mes. Pasa el cursor (o toca) una celda para ver su año. El sensor cambia en 2012, la escala no.</p>
+
+      <p class="hoja-titulo ex-paso"><span>1</span>Elige el área</p>
+      <div class="segmentos" id="ex-modos" role="tablist" aria-label="Cómo elegir el área">
+        <button type="button" role="tab" data-modo="vista" class="sel" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Lo que ves</button>
+        <button type="button" role="tab" data-modo="dibujar" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 L4 15 M4 20 L9 20 M20 4 L15 4 M20 4 L20 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="7" y="7" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2"/></svg>Dibujar</button>
+        <button type="button" role="tab" data-modo="coords" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Coordenadas</button>
+      </div>
+      <p class="nota ex-ayuda" id="ex-ayuda">Mueve y acerca el mapa: se analiza exactamente lo que ves.</p>
+      <div id="ex-coords-caja" class="oculto">
+        <div class="fila-aoi tres">
+          <label>Latitud <input id="ex-lat" type="number" step="0.01" value="17.88"></label>
+          <label>Longitud <input id="ex-lon" type="number" step="0.01" value="-100.63"></label>
+          <label>Radio km <input id="ex-rad" type="number" step="1" value="25" min="1" max="500"></label>
+        </div>
+      </div>
+
+      <p class="hoja-titulo ex-paso"><span>2</span>Periodo</p>
+      <div class="fila-aoi">
+        <label>Desde <select id="ex-desde"></select></label>
+        <label>Hasta <select id="ex-hasta"></select></label>
+      </div>
+      <div class="fila-aoi uno"><label>Mes a comparar contra su historia
+        <select id="ex-mesc"><option value="ultimo">El más reciente</option><option value="linea">El que muestra la línea de tiempo</option></select></label></div>
+      <button id="ex-analizar" class="btn-primario">Analizar el área</button>
+
+      <div id="ex-res" class="oculto">
+        <div class="anomalia"><small id="ex-mes"></small><b id="ex-anom"></b><span id="ex-anom-txt"></span></div>
+
+        <section class="ex-bloque">
+          <div class="ex-cab"><p class="hoja-titulo">Intensidad del fuego · FRP</p>
+            <div class="mini-seg" id="ex-frp-vista" role="tablist" aria-label="Vista de intensidad">
+              <button type="button" data-vista="clima" class="sel">Año típico</button><button type="button" data-vista="serie">Todo el periodo</button></div></div>
+          <p class="ex-frase" id="ex-frp-frase"></p>
+          <canvas id="ex-frp" aria-label="Gráfica de intensidad del fuego"></canvas>
+          <div class="datos" id="ex-frp-datos"></div>
+          <p class="fuente" id="ex-frp-nota"></p>
+        </section>
+
+        <section class="ex-bloque">
+          <div class="ex-cab"><p class="hoja-titulo">Calendario del área</p>
+            <div class="mini-seg" id="ex-cal-vista" role="tablist" aria-label="Qué mostrar en el calendario">
+              <button type="button" data-cal="ev" class="sel">Eventos</button><button type="button" data-cal="frp">Intensidad</button></div></div>
+          <canvas id="ex-cal" width="600" height="220" aria-label="Calendario año por mes"></canvas>
+        </section>
+
+        <section class="ex-bloque">
+          <p class="hoja-titulo">Actividad por año <small class="ex-pista">arrastra para elegir años</small></p>
+          <canvas id="ex-anual" aria-label="Actividad por año; arrastra para elegir un rango"></canvas>
+          <p class="fuente">Tono claro: MODIS convertido (antes de 2012). Tono intenso: VIIRS.</p>
+        </section>
+
+        <div class="datos" id="ex-datos"></div>
+        <p class="hoja-titulo" style="margin-top:16px">Descargas</p>
+        <div class="fila-aoi descargas">
+          <a id="ex-csv" class="btn-sec" download><svg class="ic"><use href="#i-down"/></svg>Calendario CSV</a>
+          <a id="ex-frpcsv" class="btn-sec" download><svg class="ic"><use href="#i-down"/></svg>Intensidad FRP CSV</a>
+          <a id="ex-hot" class="btn-sec" download><svg class="ic"><use href="#i-down"/></svg>Detecciones CSV</a>
+          <a id="ex-json" class="btn-sec" download="ignis_analitica_area.json"><svg class="ic"><use href="#i-down"/></svg>Resumen (JSON)</a>
+        </div>
+        <p class="fuente" id="ex-fuente"></p>
+      </div>
+
+      <p class="hoja-titulo ex-paso" style="margin-top:20px">Más formas de explorar</p>
+      <a class="btn-3d-movil" href="/eventos" target="_blank" rel="noopener"><span class="b3-ico"><svg class="ic" style="margin:0;width:22px;height:22px"><use href="#i-flame"/></svg></span><span><b>Reconstruir incendios reales</b><small>Mira cómo avanzó cada incendio, día por día</small></span></a>
+      <a class="btn-3d-movil" href="/static/3d.html" target="_blank" rel="noopener"><span class="b3-ico">3D</span><span><b>Ver 24 años de fuego en 3D</b><small>Columnas de fuego sobre México, año por año</small></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- pre-alerta: cuenta regresiva mientras la onda viaja -->
+<div id="pre" class="pre oculto"><svg class="pre-ico"><use href="#i-flame"/></svg><div><b>Alerta de incendio en camino</b><small id="pre-txt">llega en 3 s</small></div><span id="pre-n" class="pre-n">3</span></div>
+<div id="toasts" class="toasts"></div>
+
+<!-- 3. Alerta tipo sismo -->
+<section id="s-alerta" class="alerta oculto">
+  <div class="alerta-pulso"></div>
+  <div class="alerta-ondas" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="alerta-contenido">
+    <p id="al-nivel" class="al-nivel">PELIGRO</p>
+    <p class="al-sub">Posible incendio cerca</p>
+    <div class="al-dist"><span id="al-km">3.2</span><small>km</small></div>
+    <div class="brujula"><svg id="al-flecha" class="flecha" viewBox="0 0 40 40" width="64" height="64"><path d="M20 3 L33 35 L20 27 L7 35 Z" fill="#fff"/></svg><p id="al-dir">al noreste de ti</p></div>
+    <p id="al-viento" class="al-viento"></p>
+    <div class="al-botones">
+      <button id="btn-ruta" class="btn-blanco">Ver ruta de salida</button>
+      <button id="btn-que" class="btn-borde">Qué hacer</button>
+      <button id="btn-salvo" class="btn-texto">Estoy a salvo</button>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Qué hacer -->
+<section id="s-que" class="panel oculto">
+  <button class="cerrar" data-cerrar="s-que">✕</button>
+  <div id="que-contenido"></div>
+</section>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/comun.js?v=20"></script>
+<script src="/static/wow.js?v=20"></script>
+<script src="/static/graficas.js?v=20"></script>
+<script src="/static/app.js?v=20"></script>
+<script src="/static/tarjeta.js?v=20"></script>
+<script src="/static/login.js?v=20"></script>
+<script src="/static/explorar.js?v=20"></script>
+<script src="/static/plan.js?v=30"></script>
+</body>
+</html>

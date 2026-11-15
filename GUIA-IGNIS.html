@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guía IGNIS</title>
+<style>
+  :root {
+    --fondo: #0c0a09; --sup: #1c1917; --sup2: #292524; --borde: #3a3633;
+    --tinta: #fafaf9; --tinta2: #d6d3d1; --tenue: #a8a29e;
+    --brasa: #e8561f; --brasa2: #ffb020; --verde: #22c55e; --rojo: #ff5a4a;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  :root[data-theme="light"] { --fondo: #f6f4f1; --sup: #ffffff; --sup2: #f0ece6; --borde: #ddd6cc; --tinta: #1c1917; --tinta2: #44403c; --tenue: #6b6560; --brasa2: #b45309; --verde: #15803d; --rojo: #c2410c; }
+  * { box-sizing: border-box; }
+  html, body { transition: background .4s, color .4s; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta); font: 16px/1.55 var(--sans); }
+  .barra { position: sticky; top: 0; z-index: 5; background: var(--sup); border-bottom: 1px solid var(--borde); }
+  .barra-in { max-width: 940px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 14px; }
+  .marca { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; white-space: nowrap; }
+  .marca svg { width: 20px; height: 20px; color: var(--brasa); }
+  .progreso { flex: 1; min-width: 0; }
+  .progreso-txt { font: 12px var(--mono); color: var(--tenue); display: flex; justify-content: space-between; gap: 8px; }
+  .pista { height: 6px; border-radius: 3px; background: var(--sup2); overflow: hidden; margin-top: 4px; }
+  .pista i { display: block; height: 100%; width: 0; background: var(--brasa); transition: width .4s ease; }
+
+  /* interruptor día/noche de IGNIS */
+  .fire-switch { display: inline-block; cursor: pointer; line-height: 0; flex: none; }
+  .fire-switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .fs-pista { position: relative; display: block; width: 66px; height: 34px; border-radius: 999px; overflow: hidden; background: linear-gradient(135deg, #ffe39a, #ffab5e 55%, #ff7a3d); box-shadow: inset 0 2px 6px #0003, 0 0 0 1px #ffffff55; transition: background .6s; }
+  .fs-perilla { position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #fffdf5, #fff1cc); box-shadow: 0 2px 6px #9a3b0b66; transition: transform .55s cubic-bezier(.34,1.56,.64,1), background .6s; }
+  .fs-perilla svg { width: 20px; height: 20px; color: #ff6a2b; }
+  .fire-switch input:checked + .fs-pista { background: linear-gradient(135deg, #0f0a1f, #2a0e0a 60%, #4a1206); box-shadow: inset 0 2px 8px #000a, 0 0 0 1px #ff6a2b44; }
+  .fire-switch input:checked + .fs-pista .fs-perilla { transform: translateX(32px); background: radial-gradient(circle at 40% 35%, #5a1a08, #250904); }
+  .fire-switch input:checked + .fs-pista .fs-perilla svg { color: #ffb020; }
+  .fire-switch:focus-within .fs-pista { outline: 2px solid var(--brasa2); outline-offset: 2px; }
+
+  main { max-width: 940px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 8px 0 8px; letter-spacing: -.01em; }
+  .intro { color: var(--tinta2); max-width: 66ch; margin: 0 0 16px; }
+
+  /* selector de sistema */
+  .sistema { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--sup2); max-width: 520px; margin: 0 0 22px; isolation: isolate; }
+  .sistema::before { content: ''; position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 16px) / 3); border-radius: 10px; background: var(--brasa); box-shadow: 0 6px 18px #e8561f55; transition: transform .45s cubic-bezier(.34,1.4,.64,1); }
+  .sistema:has(button[data-os="win"].sel)::before { transform: translateX(calc(100% + 4px)); }
+  .sistema:has(button[data-os="linux"].sel)::before { transform: translateX(calc(200% + 8px)); }
+  .sistema button { min-height: 50px; border: 0; border-radius: 10px; background: none; color: var(--tinta2); font: 600 15px var(--sans); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: color .25s; }
+  .sistema button.sel { color: #fff; }
+  .sistema svg { width: 20px; height: 20px; }
+  body.os-mac [data-os]:not(button):not([data-os~="mac"]), body.os-win [data-os]:not(button):not([data-os~="win"]),
+  body.os-linux [data-os]:not(button):not([data-os~="linux"]) { display: none !important; }
+
+  .indice { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; }
+  .indice a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--borde); background: var(--sup); color: var(--tinta2); text-decoration: none; font-size: 14px; }
+  .indice a:hover { border-color: var(--brasa); color: var(--tinta); }
+  .indice a.listo::after { content: "✓"; color: var(--verde); font-weight: 700; }
+  section { margin: 0 0 32px; scroll-margin-top: 80px; }
+  h2 { display: flex; align-items: baseline; gap: 10px; font-size: 22px; margin: 0 0 6px; }
+  h2 .n { font: 600 13px var(--mono); color: var(--brasa2); }
+  h3 { margin: 18px 0 8px; font-size: 17px; }
+  .desc { color: var(--tinta2); margin: 0 0 12px; max-width: 70ch; }
+  .tarjeta { background: var(--sup); border: 1px solid var(--borde); border-radius: 12px; padding: 4px 0; }
+  .item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--borde); }
+  .tarjeta > .item:first-child, .tarjeta > .item.primero { border-top: 0; }
+  .item input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--verde); cursor: pointer; }
+  .item label { cursor: pointer; min-width: 0; }
+  .item label b { font-weight: 600; }
+  .item.hecho label > span:first-child { color: var(--tenue); text-decoration: line-through; text-decoration-color: var(--borde); }
+  .item small { display: block; color: var(--tenue); font-size: 14px; margin-top: 2px; }
+  .cmd { display: flex; align-items: stretch; margin: 8px 0 2px; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; background: var(--fondo); }
+  .cmd code { flex: 1; min-width: 0; padding: 9px 12px; font: 13.5px/1.5 var(--mono); color: var(--tinta); overflow-x: auto; white-space: pre; }
+  .cmd button { flex: none; border: 0; border-left: 1px solid var(--borde); background: var(--sup2); color: var(--tinta2); padding: 0 12px; cursor: pointer; font: 13px var(--sans); min-width: 72px; }
+  .cmd button:hover { color: var(--tinta); } .cmd button.ok { color: var(--verde); }
+  .nota { border-left: 3px solid var(--brasa2); background: var(--sup); padding: 10px 14px; border-radius: 0 8px 8px 0; color: var(--tinta2); margin: 12px 0; font-size: 15px; }
+  .nota b { color: var(--tinta); }
+  a { color: var(--brasa2); }
+  kbd { font: 12.5px var(--mono); padding: 1px 6px; border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 4px; background: var(--sup2); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-top: 1px solid var(--borde); vertical-align: top; }
+  td code { word-break: break-all; font: 13px var(--mono); }
+  th { font: 600 12px var(--mono); color: var(--tenue); text-transform: uppercase; letter-spacing: .04em; border-top: 0; }
+  .tabla { background: var(--sup); border: 1px solid var(--borde); border-radius: 12px; overflow-x: auto; }
+  details { background: var(--sup); border: 1px solid var(--borde); border-radius: 12px; margin: 0 0 8px; }
+  summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
+  details > div { padding: 0 16px 14px; color: var(--tinta2); }
+  .opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin: 0 0 12px; }
+  .opcion { background: var(--sup); border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px; }
+  .opcion > b { display: block; margin-bottom: 4px; }
+  .opcion p { margin: 0; color: var(--tinta2); font-size: 15px; }
+  .reiniciar { margin-top: 24px; min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--borde); background: transparent; color: var(--tenue); cursor: pointer; font: inherit; font-size: 14px; }
+  :focus-visible { outline: 2px solid var(--brasa2); outline-offset: 2px; }
+  @media (max-width: 600px) { .marca span { display: none; } .item { padding: 12px; } .sistema button { font-size: 14px; } }
+  @media (prefers-reduced-motion: reduce) { .pista i, .sistema::before, .fs-perilla { transition: none; } }
+</style>
+</head>
+<body class="os-mac">
+<div class="barra"><div class="barra-in">
+  <div class="marca"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z"/></svg>IGNIS <span>· guía</span></div>
+  <div class="progreso" aria-live="polite"><div class="progreso-txt"><span id="p-txt">0 de 0 pasos</span><span id="p-pct">0 %</span></div><div class="pista"><i id="p-barra"></i></div></div>
+  <label class="fire-switch" title="Modo día / noche"><input type="checkbox" id="tema" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z"/></svg></span></span></label>
+</div></div>
+
+<main>
+  <h1>Correr y probar IGNIS</h1>
+  <p class="intro">Elige tu sistema: cada paso cambia según el que uses. Marca lo que vayas terminando; tu avance se guarda en este navegador. Los comandos tienen botón <b>Copiar</b>.</p>
+  <div class="sistema" role="tablist" aria-label="Sistema operativo">
+    <button type="button" role="tab" data-os="mac"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.7c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.6zM14.1 5.6c.6-.8 1.1-1.9 1-3-1 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1.1.1 2.1-.5 2.8-1.3z"/></svg>macOS</button>
+    <button type="button" role="tab" data-os="win"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5 10.4 4.5v7H3zM11.4 4.4 21 3v8.5h-9.6zM3 12.5h7.4v7L3 18.5zM11.4 12.5H21V21l-9.6-1.4z"/></svg>Windows</button>
+    <button type="button" role="tab" data-os="linux"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m7 9 3 2.5L7 14M12 14h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Linux / servidor</button>
+  </div>
+  <ul class="indice" id="indice"></ul>
+
+  <section id="s1" data-titulo="Antes de empezar">
+    <h2><span class="n">01</span>Antes de empezar</h2>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c1-1"><label for="c1-1"><span><b>Al menos 15 GB libres</b> en el disco</span>
+        <small data-os="mac">Menú  → Acerca de esta Mac → Más información → Almacenamiento.</small>
+        <small data-os="win">Explorador de archivos → Este equipo → mira el espacio libre de la unidad C:.</small>
+        <small data-os="linux">En la terminal: <code>df -h /</code></small>
+        <small>IGNIS usa unos 10 GB (programas + 3.6 millones de detecciones). Con menos, Docker falla con "read-only file system" o "no space left on device".</small></label></div>
+      <div class="item"><input type="checkbox" id="c1-2"><label for="c1-2"><span><b>8 GB de RAM o más</b></span><small>Con 8 GB funciona; con 16 GB va más holgado. En un servidor, 2 GB es el mínimo.</small></label></div>
+      <div class="item"><input type="checkbox" id="c1-3"><label for="c1-3"><span>La computadora y los celulares en la <b>misma Wi-Fi</b></span><small>Redes de escuela o eventos a veces no dejan que los equipos se vean entre sí. Si pasa, usa el enlace público (paso 06).</small></label></div>
+      <div class="item" data-os="mac"><input type="checkbox" id="c1-4m"><label for="c1-4m"><span>La carpeta del proyecto <b>fuera del Escritorio y de Documentos</b> si usas iCloud</span><small>iCloud "libera" archivos cuando falta espacio y Docker ya no puede leerlos. Usa la carpeta <b>Proyectos</b> dentro de tu usuario.</small></label></div>
+      <div class="item" data-os="win"><input type="checkbox" id="c1-4w"><label for="c1-4w"><span>La carpeta del proyecto <b>fuera de OneDrive</b></span><small>Usa por ejemplo <code>C:\Proyectos\ignis-plataforma</code>. OneDrive puede dejar archivos "solo en la nube" y Docker no los ve.</small></label></div>
+      <div class="item" data-os="win"><input type="checkbox" id="c1-5w"><label for="c1-5w"><span><b>Windows 10 (22H2) o Windows 11</b>, 64 bits</span><small>Docker Desktop usa WSL 2; el instalador lo activa solo y puede pedir reiniciar.</small></label></div>
+    </div>
+  </section>
+
+  <section id="s2" data-titulo="Instalar">
+    <h2><span class="n">02</span>Instalar lo necesario</h2>
+    <p class="desc">Solo hace falta <b>Docker</b>. Python, la base de datos y el servidor web vienen dentro de IGNIS.</p>
+    <div class="tarjeta">
+      <div class="item" data-os="mac"><input type="checkbox" id="c2-1m"><label for="c2-1m"><span>Descarga <b>Docker Desktop para Mac</b> e instálalo</span><small><a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">docker.com/products/docker-desktop</a>. Elige <b>Apple Silicon</b> (M1–M4) o <b>Intel</b> (Menú  → Acerca de esta Mac → Chip). Arrastra Docker a <b>Aplicaciones</b> y expulsa el instalador (⏏).</small></label></div>
+      <div class="item" data-os="win"><input type="checkbox" id="c2-1w"><label for="c2-1w"><span>Descarga <b>Docker Desktop para Windows</b> e instálalo</span><small><a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">docker.com/products/docker-desktop</a> → "Download for Windows – AMD64". Deja marcada la opción <b>Use WSL 2</b>. Reinicia si te lo pide.</small></label></div>
+      <div class="item" data-os="linux"><input type="checkbox" id="c2-1l"><label for="c2-1l"><span>Instala <b>Docker Engine</b> (Ubuntu / Debian)</span>
+        <div class="cmd"><code>curl -fsSL https://get.docker.com | sudo sh &amp;&amp; sudo usermod -aG docker $USER &amp;&amp; newgrp docker</code><button type="button">Copiar</button></div></label></div>
+      <div class="item" data-os="mac win"><input type="checkbox" id="c2-2"><label for="c2-2"><span>Abre Docker Desktop y espera a que diga <b>Engine running</b></span><small>Puedes saltar el inicio de sesión ("Skip").</small></label></div>
+      <div class="item" data-os="mac win"><input type="checkbox" id="c2-3"><label for="c2-3"><span>Docker Desktop → <b>Settings → Resources</b>: memoria <b>4 GB o más</b> y disco <b>20 GB o más</b></span><small>"Apply &amp; restart" si cambiaste algo. (En Windows con WSL 2 los recursos los maneja Windows.)</small></label></div>
+      <div class="item"><input type="checkbox" id="c2-4"><label for="c2-4"><span>Comprueba que Docker responde</span>
+        <small data-os="mac">Abre <b>Terminal</b> (⌘ Espacio → "Terminal") y pega:</small>
+        <small data-os="win">Abre <b>PowerShell</b> (tecla Windows → "PowerShell") y pega:</small>
+        <small data-os="linux">En la terminal:</small>
+        <div class="cmd"><code>docker --version; docker compose version</code><button type="button">Copiar</button></div>
+        <small>Deben salir dos versiones. Si no, Docker no está abierto.</small></label></div>
+    </div>
+  </section>
+
+  <section id="s3" data-titulo="Pasar el proyecto">
+    <h2><span class="n">03</span>Tener el proyecto en la computadora</h2>
+    <div class="opciones">
+      <div class="opcion"><b>A · Copiar la carpeta</b><p>Comprime <b>ignis-plataforma</b> y pásala por AirDrop, USB o Drive. Descomprímela en <b data-os="mac">~/Proyectos</b><b data-os="win">C:\Proyectos</b><b data-os="linux">~/proyectos</b>.</p></div>
+      <div class="opcion"><b>B · Descargar de GitHub</b><p>En la página del repositorio: botón verde <b>Code → Download ZIP</b>, o con git (el repositorio es privado: necesitas acceso).</p></div>
+    </div>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c3-1"><label for="c3-1"><span>La carpeta está en la computadora (opción A o B)</span><small>Opción B con git:</small>
+        <div class="cmd" data-os="mac linux"><code>mkdir -p ~/Proyectos &amp;&amp; cd ~/Proyectos &amp;&amp; git clone https://github.com/Osiris117/ignis-plataforma.git</code><button type="button">Copiar</button></div>
+        <div class="cmd" data-os="win"><code>mkdir C:\Proyectos -Force; cd C:\Proyectos; git clone https://github.com/Osiris117/ignis-plataforma.git</code><button type="button">Copiar</button></div>
+        <small data-os="win">Si dice que no conoce <b>git</b>, instálalo desde <a href="https://git-scm.com/download/win" target="_blank" rel="noopener">git-scm.com</a> o usa la opción A.</small></label></div>
+      <div class="item"><input type="checkbox" id="c3-2"><label for="c3-2"><span>Dentro ves <b>docker-compose.yml</b>, <b>alerta</b>, <b>datos</b>, <b>eventos</b> y los lanzadores</span><small>Si el ZIP de GitHub creó la carpeta <b>ignis-plataforma-main</b>, está bien: es lo mismo.</small></label></div>
+    </div>
+  </section>
+
+  <section id="s4" data-titulo="Arrancar">
+    <h2><span class="n">04</span>Arrancar IGNIS</h2>
+    <div class="tarjeta">
+      <div class="item" data-os="mac"><input type="checkbox" id="c4-1m"><label for="c4-1m"><span>Arranca desde Terminal</span>
+        <small>Escribe <code>cd </code> (con espacio), <b>arrastra la carpeta</b> del proyecto a la ventana de Terminal y presiona Enter. Luego pega:</small>
+        <div class="cmd"><code>bash scripts/ignis.sh iniciar</code><button type="button">Copiar</button></div>
+        <small>¿Prefieres doble clic en <b>IGNIS-Mac.command</b>? La primera vez macOS lo bloquea ("No se abrió…"): pulsa <b>Listo</b>, ve a <b>Ajustes del Sistema → Privacidad y seguridad</b> y elige <b>Abrir de todos modos</b>. O, una sola vez, dentro de la carpeta:</small>
+        <div class="cmd"><code>xattr -dr com.apple.quarantine .</code><button type="button">Copiar</button></div></label></div>
+      <div class="item" data-os="win"><input type="checkbox" id="c4-1w"><label for="c4-1w"><span>Doble clic en <b>IGNIS-Windows.bat</b> y elige <b>1</b></span>
+        <small>Si aparece "Windows protegió su PC": <b>Más información → Ejecutar de todas formas</b>. O desde PowerShell, dentro de la carpeta:</small>
+        <div class="cmd"><code>powershell -ExecutionPolicy Bypass -File .\scripts\ignis.ps1 iniciar</code><button type="button">Copiar</button></div></label></div>
+      <div class="item" data-os="linux"><input type="checkbox" id="c4-1l"><label for="c4-1l"><span>Dentro de la carpeta del proyecto:</span>
+        <div class="cmd"><code>bash scripts/ignis.sh iniciar</code><button type="button">Copiar</button></div>
+        <small>En un servidor con dominio, primero copia <code>.env.example</code> a <code>.env</code> y pon tu dominio en <code>SITE_ADDRESS</code> (ver <b>DESPLIEGUE.md</b>).</small></label></div>
+      <div class="item"><input type="checkbox" id="c4-2"><label for="c4-2"><span>Espera <b>3 a 6 minutos</b> la primera vez</span><small>Termina con <b>✓ IGNIS en línea</b> y las direcciones para celulares y control.</small></label></div>
+      <div class="item"><input type="checkbox" id="c4-3"><label for="c4-3"><span>Se abre el <b>centro de control</b></span><small>Si no, entra a <a href="http://localhost/control" target="_blank" rel="noopener">http://localhost/control</a> (o <b>:8080</b> si el lanzador cambió de puerto).</small></label></div>
+      <div class="item"><input type="checkbox" id="c4-4"><label for="c4-4"><span>Los 6 servicios están en marcha</span>
+        <div class="cmd" data-os="mac linux"><code>bash scripts/ignis.sh estado</code><button type="button">Copiar</button></div>
+        <div class="cmd" data-os="win"><code>powershell -ExecutionPolicy Bypass -File .\scripts\ignis.ps1 estado</code><button type="button">Copiar</button></div>
+        <small><b>postgres, datos, motor, laboratorio, alerta y proxy</b>, con "Up" o "healthy".</small></label></div>
+      <div class="item"><input type="checkbox" id="c4-5"><label for="c4-5"><span>La base de detecciones terminó de cargar (~10 min)</span><small>En <a href="http://localhost/eventos" target="_blank" rel="noopener">localhost/eventos</a> arriba dice "X detecciones en la base". Cuando ya no dice "cargando más…" y ronda <b>3.6 millones</b>, está completa.</small></label></div>
+    </div>
+  </section>
+
+  <section id="s5" data-titulo="Pruebas">
+    <h2><span class="n">05</span>Probar todo</h2>
+    <p class="desc">Da un clic en el centro de control antes de empezar (así suenan los avisos).</p>
+    <h3>El QR y los celulares</h3>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c5-1"><label for="c5-1"><span>Debajo del QR aparece la <b>IP de la computadora</b> (ej. <code>http://192.168.1.20</code>), no "localhost"</span><small>Si sale un aviso rojo "Este QR no funcionará en los celulares", toca <b>Cambiar dirección</b> y escribe la IP. <span data-os="mac">Mac: Ajustes → Wi-Fi → Detalles → Dirección IP.</span><span data-os="win">Windows: en PowerShell escribe <code>ipconfig</code> y busca "Dirección IPv4" de tu Wi-Fi.</span><span data-os="linux">Linux: <code>hostname -I</code>.</span></small></label></div>
+      <div class="item"><input type="checkbox" id="c5-2"><label for="c5-2"><span>Escanea el QR, desliza los <b>4 slides</b> (24 años → intensidad → alerta → ruta) y entra como Ciudadano</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-3"><label for="c5-3"><span>Tu <b>burbuja</b> aparece en "En la sala" del control</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-4"><label for="c5-4"><span><b>Ubicarme en la zona de demo</b> → "Tu zona en la historia" con calendario e <b>intensidad típica por mes</b></span><small>Pasa el dedo o el cursor sobre el calendario y la gráfica: aparece el dato de cada mes.</small></label></div>
+    </div>
+    <h3>La alerta</h3>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c5-5"><label for="c5-5"><span>En el control toca el mapa cerca del celular y <b>Lanzar alerta</b>: cuenta regresiva → <b>PELIGRO</b> con sirena</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-6"><label for="c5-6"><span>La burbuja se pone <b>roja</b> y el marcador sube a <b>1/1</b></span></label></div>
+      <div class="item"><input type="checkbox" id="c5-7"><label for="c5-7"><span><b>Ver ruta de salida</b>, <b>Qué hacer</b> y <b>Estoy a salvo</b> (confeti verde; burbuja verde en el control)</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-8"><label for="c5-8"><span><b>Avanzar 30 min</b> y <b>Terminar incendio</b></span></label></div>
+      <div class="item"><input type="checkbox" id="c5-9"><label for="c5-9"><span>Personal especializado con el código <b>CONAFOR-2026</b>: cono de propagación y panel táctico</span></label></div>
+    </div>
+    <h3>Plan de control (personal especializado)</h3>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c5-p1"><label for="c5-p1"><span>Entra en un celular o computadora como <b>Personal especializado</b> (código CONAFOR-2026) y lanza un incendio desde el control</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-p2"><label for="c5-p2"><span>En el control aparece el <b>Plan de control</b>: brecha con tractor, flancos, zona segura, recursos y personal asignado</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-p3"><label for="c5-p3"><span>El brigadista recibe <b>"Tu tarea"</b> con su sector, distancia y "Cómo llegar"</span><small>Un ciudadano no ve el plan.</small></label></div>
+      <div class="item"><input type="checkbox" id="c5-p4"><label for="c5-p4"><span><b>▶ Simular ataque</b>: el tractor abre la brecha, las brigadas avanzan por los flancos y el fuego queda <b>contenido</b></span></label></div>
+      <div class="item"><input type="checkbox" id="c5-p5"><label for="c5-p5"><span><b>Avanzar 30 min</b> varias veces: la brecha avanza y, al llegar la cabeza, el incendio deja de crecer</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-p6"><label for="c5-p6"><span><b>Hoja SCI-201</b> se abre o se descarga para imprimir</span></label></div>
+    </div>
+    <h3>Explorar: áreas, intensidad y periodos</h3>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c5-10"><label for="c5-10"><span>Pestaña <b>Explorar historia</b>: ▶ y pasa el cursor sobre una celda del mapa (gráfica de su año)</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-11"><label for="c5-11"><span>Selector <b>Lo que ves · Dibujar · Coordenadas</b>: elige <b>Dibujar</b> y arrastra un rectángulo en el mapa</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-12"><label for="c5-12"><span>Bloque <b>Intensidad del fuego · FRP</b>: "Año típico" y "Todo el periodo", con la correlación FRP ↔ eventos</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-13"><label for="c5-13"><span>Calendario: cambia <b>Eventos / Intensidad</b> y pasa el cursor sobre los meses</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-14"><label for="c5-14"><span><b>Actividad por año</b>: arrastra sobre las barras para elegir un rango de años</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-15"><label for="c5-15"><span>Descargas: Calendario CSV, <b>Intensidad FRP CSV</b>, Detecciones CSV y Resumen JSON</span></label></div>
+    </div>
+    <h3>Las demás vistas</h3>
+    <div class="tarjeta">
+      <div class="item"><input type="checkbox" id="c5-16"><label for="c5-16"><span><a href="http://localhost/eventos" target="_blank" rel="noopener">Incendios reconstruidos</a>: ejemplo Calakmul → Reconstruir → reproducción; cambia a <b>Intensidad FRP</b> y pasa el cursor sobre la lista</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-17"><label for="c5-17"><span><b>3D</b>: columnas que suben, Por año / Acumulado, ▶</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-18"><label for="c5-18"><span><a href="http://localhost/laboratorio/" target="_blank" rel="noopener">Laboratorio</a>: Reconstruir eventos del periodo</span></label></div>
+      <div class="item"><input type="checkbox" id="c5-19"><label for="c5-19"><span>El <b>interruptor de la llama</b> (día/noche) está en el login, el mapa, el control, eventos, 3D y el acceso al control</span><small>En el Laboratorio el modo sigue al de tu equipo; se cambia en ⋮ → Settings → Theme.</small></label></div>
+    </div>
+  </section>
+
+  <section id="s6" data-titulo="Enlace público">
+    <h2><span class="n">06</span>Enlace público con HTTPS (GPS real)</h2>
+    <p class="desc">Para que cualquiera entre desde internet sin servidor ni dominio. Funciona mientras la computadora esté encendida.</p>
+    <div class="tarjeta">
+      <div class="item" data-os="mac linux"><input type="checkbox" id="c6-1m"><label for="c6-1m"><span>Detén IGNIS y arráncalo en modo público</span>
+        <div class="cmd"><code>bash scripts/ignis.sh detener; bash scripts/ignis.sh publico</code><button type="button">Copiar</button></div></label></div>
+      <div class="item" data-os="win"><input type="checkbox" id="c6-1w"><label for="c6-1w"><span>Doble clic en <b>Detener-IGNIS-Windows.bat</b>, luego <b>IGNIS-Windows.bat</b> y elige <b>2</b></span></label></div>
+      <div class="item"><input type="checkbox" id="c6-2"><label for="c6-2"><span>Anota el <b>enlace https://….trycloudflare.com</b> y la <b>contraseña del centro de control</b></span></label></div>
+      <div class="item"><input type="checkbox" id="c6-3"><label for="c6-3"><span>Ábrelo en un celular con <b>datos móviles</b>: pide permiso de ubicación y te pone donde estás</span></label></div>
+      <div class="item"><input type="checkbox" id="c6-4"><label for="c6-4"><span><b>/control</b> pide contraseña: una mala la rechaza, la buena entra</span></label></div>
+    </div>
+  </section>
+
+  <section id="s7" data-titulo="Si algo falla">
+    <h2><span class="n">07</span>Si algo falla</h2>
+    <details><summary>El QR no abre la página en el celular</summary><div>
+      <p>1) Revisa que la dirección bajo el QR sea la IP de la computadora (no localhost ni 172.x). Si no, <b>Cambiar dirección</b>. 2) Mismo Wi-Fi en ambos. 3) <span data-os="mac">Si macOS pregunta por conexiones entrantes de Docker, elige Permitir.</span><span data-os="win">Permite <b>Docker Desktop Backend</b> en el Firewall de Windows (redes privadas).</span><span data-os="linux">Abre el puerto 80 en el firewall (<code>sudo ufw allow 80</code>).</span> 4) Si la red de la escuela bloquea, usa el enlace público (paso 06).</p></div></details>
+    <details><summary>"dependency datos failed to start" o "ignis-datos-1 is unhealthy"</summary><div>
+      <p>Pasa si descargaste el proyecto otra vez: la carpeta nueva crea otra contraseña y la base de datos vieja de Docker no la acepta. Reinicia solo la base (se vuelve a cargar sola desde los CSV en ~10 min) y arranca de nuevo:</p>
+      <div class="cmd" data-os="mac linux"><code>bash scripts/ignis.sh reiniciar-datos; bash scripts/ignis.sh iniciar</code><button type="button">Copiar</button></div>
+      <div class="cmd" data-os="win"><code>.\scripts\ignis.ps1 reiniciar-datos; .\scripts\ignis.ps1 iniciar</code><button type="button">Copiar</button></div>
+      <p>Las versiones nuevas del lanzador ya lo detectan y lo arreglan solas.</p></div></details>
+    <details><summary>"read-only file system" o "no space left on device"</summary><div>
+      <p>El disco está casi lleno. Libera al menos 15 GB, cierra y abre Docker y arranca de nuevo. Si sigue: Docker Desktop → Troubleshoot → <b>Clean / Purge data</b> (borra solo lo de Docker).</p></div></details>
+    <details><summary>No encuentra "docker"</summary><div><p>Abre Docker Desktop y espera "Engine running". Luego vuelve a abrir el lanzador.</p></div></details>
+    <details data-os="mac"><summary>"No se abrió IGNIS-Mac.command"</summary><div><p>macOS bloquea archivos descargados. Usa Terminal (paso 04) o <b>Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos</b>.</p></div></details>
+    <details data-os="win"><summary>"No se puede ejecutar scripts en este sistema"</summary><div><p>Usa el <b>.bat</b> (ya incluye el permiso) o el comando con <code>-ExecutionPolicy Bypass</code> del paso 04.</p></div></details>
+    <details><summary>Tarda mucho o algo no responde</summary><div>
+      <div class="cmd" data-os="mac linux"><code>bash scripts/ignis.sh registros</code><button type="button">Copiar</button></div>
+      <div class="cmd" data-os="win"><code>powershell -ExecutionPolicy Bypass -File .\scripts\ignis.ps1 registros</code><button type="button">Copiar</button></div>
+      <p>Busca líneas en rojo. Para salir: <kbd>Ctrl</kbd> <kbd>C</kbd>.</p></div></details>
+    <details><summary>Quiero empezar de cero</summary><div><p>Esto borra solo la base de datos de Docker (se vuelve a cargar sola):</p>
+      <div class="cmd"><code>docker compose --profile tunel down -v</code><button type="button">Copiar</button></div></div></details>
+  </section>
+
+  <section id="s8" data-titulo="Comandos">
+    <h2><span class="n">08</span>Comandos de referencia</h2>
+    <div class="tabla"><table>
+      <tr><th>Acción</th><th data-os="mac linux">macOS / Linux</th><th data-os="win">Windows (PowerShell)</th></tr>
+      <tr><td>Iniciar</td><td data-os="mac linux"><code>bash scripts/ignis.sh iniciar</code></td><td data-os="win"><code>.\scripts\ignis.ps1 iniciar</code></td></tr>
+      <tr><td>Enlace público</td><td data-os="mac linux"><code>bash scripts/ignis.sh publico</code></td><td data-os="win"><code>.\scripts\ignis.ps1 publico</code></td></tr>
+      <tr><td>Estado</td><td data-os="mac linux"><code>bash scripts/ignis.sh estado</code></td><td data-os="win"><code>.\scripts\ignis.ps1 estado</code></td></tr>
+      <tr><td>Registros</td><td data-os="mac linux"><code>bash scripts/ignis.sh registros</code></td><td data-os="win"><code>.\scripts\ignis.ps1 registros</code></td></tr>
+      <tr><td>Detener</td><td data-os="mac linux"><code>bash scripts/ignis.sh detener</code></td><td data-os="win"><code>.\scripts\ignis.ps1 detener</code></td></tr>
+      <tr><td>Reiniciar la base de detecciones</td><td data-os="mac linux"><code>bash scripts/ignis.sh reiniciar-datos</code></td><td data-os="win"><code>.\scripts\ignis.ps1 reiniciar-datos</code></td></tr>
+      <tr><td>Actualizar desde GitHub</td><td data-os="mac linux"><code>bash scripts/ignis.sh actualizar</code></td><td data-os="win"><code>.\scripts\ignis.ps1 actualizar</code></td></tr>
+    </table></div>
+    <p class="nota" data-os="win">En PowerShell, si un <code>.ps1</code> no corre, antepón <code>powershell -ExecutionPolicy Bypass -File</code>.</p>
+    <p class="nota">Para un sitio permanente con dominio propio, sigue <b>DESPLIEGUE.md</b> en esta misma carpeta.</p>
+    <button class="reiniciar" id="reiniciar" type="button">Desmarcar todo</button>
+  </section>
+</main>
+
+<script>
+(() => {
+  const CLAVE = 'ignis-guia-v2';
+  let estado = {};
+  try { estado = JSON.parse(localStorage.getItem(CLAVE) || '{}'); } catch (e) {}
+  const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) {} };
+  const todas = [...document.querySelectorAll('.item input[type=checkbox]')];
+  const secciones = [...document.querySelectorAll('section[data-titulo]')];
+  const visible = el => el.offsetParent !== null;
+  document.getElementById('indice').innerHTML = secciones.map(s => `<li><a href="#${s.id}" data-s="${s.id}">${s.dataset.titulo}</a></li>`).join('');
+
+  function pintar() {
+    const cajas = todas.filter(visible), hechos = cajas.filter(c => c.checked).length;
+    document.getElementById('p-txt').textContent = `${hechos} de ${cajas.length} pasos`;
+    const pct = cajas.length ? Math.round(100 * hechos / cajas.length) : 0;
+    document.getElementById('p-pct').textContent = pct + ' %';
+    document.getElementById('p-barra').style.width = pct + '%';
+    todas.forEach(c => c.closest('.item').classList.toggle('hecho', c.checked));
+    secciones.forEach(s => {
+      const propias = [...s.querySelectorAll('.item input')].filter(visible);
+      const a = document.querySelector(`[data-s="${s.id}"]`);
+      if (a) a.classList.toggle('listo', propias.length > 0 && propias.every(c => c.checked));
+    });
+    document.querySelectorAll('.tarjeta').forEach(t => { const v = [...t.children].filter(visible); t.querySelectorAll('.item').forEach(i => i.classList.toggle('primero', i === v[0])); });
+  }
+  todas.forEach(c => { c.checked = !!estado[c.id]; c.addEventListener('change', () => { estado[c.id] = c.checked; guardar(); pintar(); }); });
+
+  // sistema operativo: se detecta solo y se recuerda
+  function sistema(os) {
+    document.body.classList.remove('os-mac', 'os-win', 'os-linux'); document.body.classList.add('os-' + os);
+    document.querySelectorAll('.sistema button').forEach(b => { b.classList.toggle('sel', b.dataset.os === os); b.setAttribute('aria-selected', b.dataset.os === os); });
+    try { localStorage.setItem('ignis-guia-os', os); } catch (e) {}
+    pintar();
+  }
+  let os = null; try { os = localStorage.getItem('ignis-guia-os'); } catch (e) {}
+  if (!os) { const ua = navigator.userAgent; os = /Windows/i.test(ua) ? 'win' : /Mac/i.test(ua) ? 'mac' : /Linux|X11/i.test(ua) ? 'linux' : 'mac'; }
+  document.querySelectorAll('.sistema button').forEach(b => b.addEventListener('click', () => sistema(b.dataset.os)));
+  sistema(os);
+
+  document.querySelectorAll('.cmd button').forEach(b => b.addEventListener('click', async e => {
+    e.preventDefault();
+    const texto = b.previousElementSibling.textContent;
+    try { await navigator.clipboard.writeText(texto); }
+    catch (err) { const r = document.createRange(); r.selectNodeContents(b.previousElementSibling); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); }
+    b.textContent = 'Copiado'; b.classList.add('ok');
+    setTimeout(() => { b.textContent = 'Copiar'; b.classList.remove('ok'); }, 1600);
+  }));
+  document.getElementById('reiniciar').addEventListener('click', () => { estado = {}; guardar(); todas.forEach(c => c.checked = false); pintar(); });
+
+  // día / noche, como en IGNIS
+  const raiz = document.documentElement, sw = document.getElementById('tema');
+  const tema = noche => { raiz.dataset.theme = noche ? 'dark' : 'light'; sw.checked = noche; try { localStorage.setItem('ignis-tema', noche ? 'dark' : 'light'); } catch (e) {} };
+  let t = null; try { t = localStorage.getItem('ignis-tema'); } catch (e) {}
+  tema(t ? t === 'dark' : !matchMedia('(prefers-color-scheme: light)').matches);
+  sw.addEventListener('change', () => tema(sw.checked));
+})();
+</script>
+</body>
+</html>

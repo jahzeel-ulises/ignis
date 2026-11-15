@@ -1,0 +1,36 @@
+# Independiente del compose de ingesta. Reutiliza su red; no modifica PostgreSQL.
+services:
+  clustering-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.clustering
+    restart: unless-stopped
+    environment:
+      DATA_API_URL: http://data-api:8000
+      MAX_DETECTIONS: ${MAX_DETECTIONS:-100000}
+    ports:
+      - "127.0.0.1:${CLUSTER_PORT:-8012}:8000"
+    networks:
+      - data_network
+      - explorer_network
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    restart: unless-stopped
+    environment:
+      CLUSTER_API_URL: http://clustering-api:8000
+    ports:
+      - "127.0.0.1:${STREAMLIT_PORT:-8501}:8501"
+    depends_on:
+      - clustering-api
+    networks:
+      - explorer_network
+
+networks:
+  data_network:
+    external: true
+    name: ${DATA_NETWORK:?Configura DATA_NETWORK en .env con el nombre real de la red fireprint_private}
+  explorer_network:
+    driver: bridge

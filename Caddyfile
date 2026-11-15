@@ -1,0 +1,26 @@
+# Con un dominio en SITE_ADDRESS (ej. ignis.ejemplo.mx) Caddy obtiene HTTPS solo.
+# Con ":80" sirve HTTP en la red local (útil para pruebas sin dominio).
+{
+	# confía en el túnel de Cloudflare (red privada de Docker) para saber si la visita llegó por HTTPS
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle /laboratorio* {
+		reverse_proxy laboratorio:8501
+	}
+	handle {
+		reverse_proxy alerta:8000
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+		-Server
+	}
+}

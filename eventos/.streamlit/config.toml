@@ -1,0 +1,29 @@
+# IGNIS · Laboratorio: mismo sistema visual que IGNIS Alerta.
+[theme]
+primaryColor = "#e8561f"
+font = "sans-serif"
+
+# Día y noche, igual que IGNIS: sigue el modo del equipo y se cambia en ⋮ → Settings → Theme.
+[theme.light]
+primaryColor = "#e8561f"
+backgroundColor = "#f6f4f1"
+secondaryBackgroundColor = "#f0ece6"
+textColor = "#1c1917"
+borderColor = "#ddd6cc"
+
+[theme.dark]
+primaryColor = "#e8561f"
+backgroundColor = "#0c0a09"
+secondaryBackgroundColor = "#1c1917"
+textColor = "#fafaf9"
+borderColor = "#3a3633"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+
+[client]
+toolbarMode = "viewer"
+showErrorDetails = false

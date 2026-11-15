@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0807">
+<meta name="description" content="IGNIS: alerta temprana de incendios con 24 años de fuego de NASA FIRMS armonizado MODIS→VIIRS, alerta en vivo tipo sismo, incendios reconstruidos día por día y vista 3D.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="IGNIS · alerta temprana de incendios">
+<meta property="og:description" content="24 años de fuego en México (NASA FIRMS), alerta en vivo que viaja como onda y la historia de cada incendio, día por día.">
+<meta property="og:image" content="/static/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<title>IGNIS · Incendios reconstruidos</title>
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css?v=20">
+<link rel="stylesheet" href="/static/wow.css?v=20">
+<link rel="stylesheet" href="/static/eventos.css?v=20">
+</head>
+<body class="ev-pagina">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="currentColor"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<aside class="ev-panel" id="panel">
+  <header class="ev-cab">
+    <a class="ev-volver" href="/" aria-label="Volver a IGNIS Alerta"><svg class="marca-ico"><use href="#i-flame"/></svg>IGNIS</a>
+    <label class="fire-switch" title="Modo día / noche"><input type="checkbox" id="tema" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-estrellas"></span><span class="fs-chispas"><i></i><i></i><i></i><i></i><i></i></span><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="fs-c1"/><stop offset="1" class="fs-c2"/></linearGradient></defs><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="url(#gl)"/><path d="M12 21.6a3.4 3.4 0 0 1-3.4-3.4c0-2.2 2-3.2 3-5.4.6 1.7 3.8 3 3.8 5.4a3.4 3.4 0 0 1-3.4 3.4z" class="fs-nucleo"/></svg></span></span></label>
+  </header>
+  <h1 data-split>Incendios reconstruidos</h1>
+  <p class="ev-sub">Agrupamos las detecciones de satélite por cercanía en espacio y tiempo para reconstruir cada incendio y ver cómo avanzó, día por día.</p>
+  <p class="ev-servicio" id="servicio"><span class="punto"></span><span id="servicio-txt">Conectando con el motor de eventos…</span></p>
+
+  <section class="ev-paso" id="paso-area">
+    <p class="hoja-titulo">1 · Área y periodo</p>
+    <div class="segmentos dos" id="ev-modos" role="tablist" aria-label="Cómo elegir el área">
+      <button type="button" role="tab" data-modo="vista" class="sel" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Lo que ves</button>
+      <button type="button" role="tab" data-modo="dibujar" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 L4 15 M4 20 L9 20 M20 4 L15 4 M20 4 L20 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="7" y="7" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2"/></svg>Dibujar área</button>
+    </div>
+    <p class="nota" id="ev-ayuda" style="margin:2px 0 10px">Mueve y acerca el mapa: se analiza el recuadro punteado.</p>
+    <div class="ev-chips" id="presets" aria-label="Ejemplos"></div>
+    <div class="fila-aoi">
+      <label>Desde <input type="date" id="ev-desde" value="2024-04-01" min="2008-01-01"></label>
+      <label>Hasta <input type="date" id="ev-hasta" value="2024-04-30" min="2008-01-01"></label>
+    </div>
+    <div class="fila-aoi">
+      <label>Sensor <select id="ev-sensor"><option value="ALL">MODIS y VIIRS</option><option value="MODIS">Solo MODIS</option><option value="VIIRS">Solo VIIRS</option></select></label>
+      <label>Mostrar eventos con <select id="ev-min"><option value="3">3+ detecciones</option><option value="10" selected>10+ detecciones</option><option value="50">50+ detecciones</option><option value="1">todas</option></select></label>
+    </div>
+    <details class="coords"><summary>Ajustes del agrupamiento</summary>
+      <div class="fila-aoi">
+        <label>Radio espacial (m) <input type="number" id="p-eps" value="1200" min="100" max="25000" step="100"></label>
+        <label>Distancia entre días (m) <input type="number" id="p-dist" value="1500" min="100" max="50000" step="100"></label>
+        <label>Hueco máximo (h) <input type="number" id="p-gap" value="48" min="1" max="240" step="12"></label>
+        <label>Mínimo por grupo <input type="number" id="p-min" value="1" min="1" max="50"></label>
+      </div>
+    </details>
+    <p class="ev-area" id="ev-area">—</p>
+    <button class="btn-primario" id="btn-reconstruir" type="button"><svg class="ic"><use href="#i-flame"/></svg>Reconstruir incendios</button>
+    <p class="error" id="ev-error" role="alert"></p>
+  </section>
+
+  <section class="ev-carga oculto" id="carga" aria-live="polite">
+    <div class="ev-llama"><svg><use href="#i-flame"/></svg></div>
+    <ol class="ev-etapas"><li>Consultando detecciones en la base</li><li>Agrupando cada día (DBSCAN)</li><li>Uniendo días en incendios</li></ol>
+  </section>
+
+  <section class="ev-paso oculto" id="paso-res">
+    <p class="hoja-titulo">2 · Resultado</p>
+    <div class="datos">
+      <div><small>Detecciones analizadas</small><b id="r-det">0</b></div>
+      <div><small>Incendios reconstruidos</small><b id="r-ev">0</b></div>
+    </div>
+    <p class="hoja-titulo" style="margin-top:14px">Actividad por mes</p>
+    <div class="ev-meses" id="r-meses"></div>
+    <p class="hoja-titulo" style="margin-top:14px">Los más grandes <small id="r-vis" class="ev-cuenta"></small></p>
+    <div class="ev-lista" id="r-lista"></div>
+    <p class="fuente">Eventos = agrupamientos de detecciones FIRMS (MODIS y VIIRS) cercanos en espacio y tiempo. Son incendios candidatos, no confirmados.</p>
+  </section>
+
+  <a class="ev-lab" id="lab" href="/laboratorio/" target="_blank" rel="noopener"><span class="b3-ico">LAB</span><span><b>Abrir el Laboratorio</b><small>Análisis avanzado: parámetros, calendario y tablas</small></span></a>
+</aside>
+
+<main class="ev-mapa-caja">
+  <div id="mapa" aria-label="Mapa de incendios reconstruidos"></div>
+  <div class="ev-reproductor oculto" id="repro" aria-live="polite">
+    <div class="ev-rep-cab">
+      <div><b id="rp-fecha">—</b><small id="rp-id">—</small></div>
+      <div class="ev-rep-num"><span><b id="rp-nuevas">0</b><small>nuevas hoy</small></span><span class="rp-frp"><b id="rp-frp">0</b><small>MW hoy</small></span><span><b id="rp-acum">0</b><small>acumuladas</small></span></div>
+      <button class="ev-cerrar" id="rp-cerrar" aria-label="Cerrar reproducción">✕</button>
+    </div>
+    <div class="mini-seg ev-metrica" id="rp-metrica" role="tablist" aria-label="Qué mostrar en la gráfica"><button type="button" data-m="det" class="sel">Detecciones por día</button><button type="button" data-m="frp">Intensidad FRP</button></div>
+    <canvas id="rp-chispa" height="44" aria-label="Actividad diaria; toca para ir a un día"></canvas>
+    <div class="ev-rep-ctl">
+      <button class="tl-play" id="rp-play" aria-label="Reproducir">▶</button>
+      <input type="range" id="rp-dia" min="0" max="0" value="0" aria-label="Día">
+      <button class="ev-vel" id="rp-vel" aria-label="Velocidad">1×</button>
+    </div>
+    <div class="ev-leyenda"><span style="--c:#ffb020">MODIS</span><span style="--c:#ff5a1f">VIIRS</span><span style="--c:#8f8178">días anteriores</span><span class="env">envolvente observada (no es área quemada)</span></div>
+  </div>
+</main>
+<div id="toasts" class="toasts"></div>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/comun.js?v=20"></script>
+<script src="/static/wow.js?v=20"></script>
+<script src="/static/graficas.js?v=20"></script>
+<script src="/static/eventos.js?v=20"></script>
+</body>
+</html>

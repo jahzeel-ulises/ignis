@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0807">
+<meta name="robots" content="noindex">
+<title>IGNIS · Centro de control</title>
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css?v=20">
+<link rel="stylesheet" href="/static/wow.css?v=20">
+<style>
+  body { display: grid; place-items: center; padding: 16px; overflow: auto;
+    background: radial-gradient(90% 60% at 50% 110%, #5a1c06, #1a0d07 45%, #0a0807 75%); }
+  #brasas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .caja { position: relative; width: min(100%, 400px); padding: 28px 24px; border-radius: 18px; background: #1c1917ee; border: 1px solid var(--borde);
+    box-shadow: 0 30px 80px #000a; display: flex; flex-direction: column; gap: 10px; animation: subeEntra .6s cubic-bezier(.2,.8,.2,1) both; }
+  html[data-theme=light] body { background: radial-gradient(90% 60% at 50% 110%, #ffcfae, #fbe9dc 45%, #f6f4f1 75%); }
+  html[data-theme=light] .caja { background: #ffffffee; box-shadow: 0 30px 80px #7a2a0a33; }
+  .login-cab { display: flex; align-items: center; justify-content: space-between; }
+  .marca { display: flex; align-items: center; gap: 8px; font: 700 22px var(--f-cond); color: var(--tinta); }
+  h1 { margin: 10px 0 0; font: 700 32px/1.05 var(--f-cond); color: var(--tinta); }
+  p { margin: 0 0 8px; color: var(--tinta2); line-height: 1.5; }
+  a { color: var(--brasa2); font-size: 14px; text-align: center; margin-top: 4px; }
+</style>
+</head>
+<body>
+<canvas id="brasas" aria-hidden="true"></canvas>
+<form class="caja" id="f" autocomplete="off">
+  <div class="login-cab"><div class="marca"><svg class="marca-ico" viewBox="0 0 24 24"><path fill="currentColor" d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z"/></svg>IGNIS</div><label class="fire-switch" title="Modo día / noche"><input type="checkbox" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-estrellas"></span><span class="fs-chispas"><i></i><i></i><i></i><i></i><i></i></span><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gl4" x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="fs-c1"/><stop offset="1" class="fs-c2"/></linearGradient></defs><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="url(#gl4)"/><path d="M12 21.6a3.4 3.4 0 0 1-3.4-3.4c0-2.2 2-3.2 3-5.4.6 1.7 3.8 3 3.8 5.4a3.4 3.4 0 0 1-3.4 3.4z" class="fs-nucleo"/></svg></span></span></label></div>
+  <h1 data-split>Centro de control</h1>
+  <p>Solo el equipo que presenta puede lanzar alertas. Escribe la contraseña del centro de control.</p>
+  <label class="lbl" for="clave">Contraseña</label>
+  <input id="clave" class="campo mono" type="password" required autofocus autocomplete="current-password">
+  <p id="err" class="error" role="alert"></p>
+  <button class="btn-primario" id="btn" type="submit">Entrar al control</button>
+  <a href="/">Volver a IGNIS</a>
+</form>
+<script src="/static/comun.js?v=20"></script>
+<script src="/static/wow.js?v=20"></script>
+<script>
+  IG.tema(); WOW.brasas(document.getElementById('brasas')); WOW.revelar(document.querySelector('h1'));
+  document.getElementById('f').onsubmit = async e => {
+    e.preventDefault();
+    const btn = document.getElementById('btn'), err = document.getElementById('err');
+    btn.classList.add('cargando'); btn.disabled = true; err.textContent = '';
+    const r = await fetch('/api/control/acceso', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clave: document.getElementById('clave').value }) }).catch(() => null);
+    if (r && r.ok) { const b = btn.getBoundingClientRect(); await WOW.encender(b.left + b.width / 2, b.top + b.height / 2); location.reload(); return; }
+    err.textContent = r ? 'Contraseña incorrecta.' : 'Sin conexión con el servidor.';
+    const f = document.getElementById('f'); f.classList.remove('sacude'); void f.offsetWidth; f.classList.add('sacude');
+    btn.classList.remove('cargando'); btn.disabled = false;
+  };
+</script>
+<style>.caja.sacude { animation: sacudir .4s; }</style>
+</body>
+</html>

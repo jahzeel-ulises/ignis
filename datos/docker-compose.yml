@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fireprint}
+      POSTGRES_USER: ${POSTGRES_USER:-fireprint}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fireprint_local_change_me}
+    volumes:
+      - fireprint_pg_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - fireprint_private
+    # PostgreSQL no publica puertos en el host.
+
+  data-api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-fireprint}
+      PGUSER: ${POSTGRES_USER:-fireprint}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-fireprint_local_change_me}
+      DATA_DIR: /data
+      AUTO_INGEST: ${AUTO_INGEST:-true}
+    volumes:
+      - ./data:/data:ro
+    ports:
+      - "127.0.0.1:${DATA_API_PORT:-8011}:8000"
+    networks:
+      - fireprint_private
+
+volumes:
+  fireprint_pg_data:
+
+networks:
+  fireprint_private:
+    driver: bridge

@@ -1,0 +1,12 @@
+{
+  "a": 1.1963698723187037,
+  "b": 0.7333313361908714,
+  "r2_celda_mes": 0.406,
+  "r2_nacional_mensual": 0.979,
+  "pares": 203468,
+  "periodo_ajuste": [
+    2012,
+    2025
+  ],
+  "formula": "FRP_VIIRS ≈ exp(a) · FRP_MODIS^b  (FRP total por celda 0.1° y mes, MW)"
+}

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0807">
+<meta name="description" content="IGNIS: alerta temprana de incendios con 24 años de fuego de NASA FIRMS armonizado MODIS→VIIRS, alerta en vivo tipo sismo, incendios reconstruidos día por día y vista 3D.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="IGNIS · alerta temprana de incendios">
+<meta property="og:description" content="24 años de fuego en México (NASA FIRMS), alerta en vivo que viaja como onda y la historia de cada incendio, día por día.">
+<meta property="og:image" content="/static/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<title>IGNIS · Fuego en 3D</title>
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="stylesheet" href="/static/tema.css?v=20">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --fondo: #0a0807; --tinta: #fff6ef; --t2: #e2d4ca; --tenue: #a8a29e; --borde: #3a3633; --vidrio: #1c1917e6; --brasa: #e8561f; --brasa2: #ffb020;
+    --f-sans: 'IBM Plex Sans', system-ui, sans-serif; --f-cond: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif; --f-mono: 'IBM Plex Mono', ui-monospace, monospace; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(120% 80% at 50% 120%, #3a1406, #0a0807 60%); color: var(--tinta); font-family: var(--f-sans); }
+  html[data-theme=light] { --fondo: #f6f4f1; --tinta: #1c1917; --t2: #44403c; --tenue: #6b6560; --borde: #ddd6cc; --vidrio: #ffffffe6; --brasa2: #b45309; }
+  html[data-theme=light] body { background: radial-gradient(120% 80% at 50% 120%, #ffd2b3, #f6f4f1 60%); }
+  html[data-theme=light] .anio b { background: linear-gradient(180deg, #1c1917, #b4400f); -webkit-background-clip: text; background-clip: text; }
+  html[data-theme=light] .anio small { color: #9a3412; border-color: #9a341255; }
+  html[data-theme=light] .barras i { background: #f26b2a44; } html[data-theme=light] .barras i.pasado { background: #f26b2a99; }
+  html, body { transition: background .4s, color .4s; }
+  .cab .fire-switch { align-self: center; }
+  #lienzo { position: fixed; inset: 0; }
+  button { font: inherit; }
+  .cab { position: fixed; z-index: 2; top: max(16px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; align-items: flex-start; gap: 12px; pointer-events: none; }
+  .cab > * { pointer-events: auto; }
+  .volver { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--vidrio); border: 1px solid var(--borde); color: var(--tinta); text-decoration: none; font-size: 14px; }
+  .titulo { margin-left: 4px; }
+  .titulo h1 { margin: 0; font: 700 clamp(22px, 3vw, 34px)/1 var(--f-cond); letter-spacing: -.01em; }
+  .titulo p { margin: 4px 0 0; color: var(--tenue); font: 500 12px var(--f-mono); }
+  .modo { margin-left: auto; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 12px; background: var(--vidrio); border: 1px solid var(--borde); position: relative; isolation: isolate; }
+  .modo::before { content: ''; position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 8px; background: var(--brasa); transition: transform .4s cubic-bezier(.34,1.4,.64,1); }
+  .modo:has(button[data-m=acum].sel)::before { transform: translateX(100%); }
+  .modo button { border: 0; background: none; color: var(--t2); padding: 9px 14px; min-height: 40px; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .modo button.sel { color: #fff; }
+
+  .anio { position: fixed; z-index: 2; left: clamp(16px, 4vw, 48px); bottom: calc(150px + env(safe-area-inset-bottom)); pointer-events: none; }
+  .anio b { display: block; font: 700 clamp(64px, 12vw, 150px)/.85 var(--f-cond); letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #fff6ef, #ffb38a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .anio b.largo { font-size: clamp(44px, 7.5vw, 96px); }
+  .anio span { display: block; margin-top: 8px; color: var(--t2); font-size: 15px; }
+  .anio span em { font-style: normal; font-family: var(--f-mono); color: var(--brasa2); }
+  .anio small { display: inline-block; margin-top: 8px; font: 500 12px var(--f-mono); color: #ffb38a; border: 1px solid #ffb38a55; padding: 3px 8px; border-radius: 4px; }
+
+  .panel { position: fixed; z-index: 2; left: 16px; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; gap: 14px;
+    padding: 12px 14px; border-radius: 18px; background: var(--vidrio); border: 1px solid var(--borde); box-shadow: 0 20px 50px #0008; }
+  .play { width: 52px; height: 52px; flex: none; border-radius: 50%; border: 0; background: var(--brasa); color: #fff; cursor: pointer; display: grid; place-items: center; box-shadow: 0 6px 24px #e8561f66; transition: transform .15s; }
+  .play:active { transform: scale(.94); } .play svg { width: 22px; height: 22px; }
+  .barras { flex: 1; min-width: 0; display: flex; align-items: flex-end; gap: 3px; height: 60px; cursor: pointer; touch-action: none; }
+  .barras i { flex: 1; min-width: 2px; border-radius: 3px 3px 0 0; background: #f26b2a55; transition: background .3s, transform .3s; transform-origin: bottom; }
+  .barras i.pasado { background: #f26b2aaa; }
+  .barras i.sel { background: linear-gradient(#ffd27a, #ff6a2b); box-shadow: 0 0 14px #ff6a2b; }
+  .barras i.modis { opacity: .75; }
+  .leyenda { flex: none; display: flex; flex-direction: column; gap: 4px; font: 500 11px var(--f-mono); color: var(--tenue); }
+  .rampa { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #601a0a, #96280c, #cc4014, #f06826, #ffa046, #ffde96); }
+  .leyenda div { display: flex; justify-content: space-between; }
+  .ayuda { position: fixed; z-index: 2; right: 16px; bottom: calc(110px + env(safe-area-inset-bottom)); margin: 0; font: 500 11px var(--f-mono); color: var(--tenue); text-align: right; pointer-events: none; }
+  .carga { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; background: var(--fondo); transition: opacity .6s; font: 500 13px var(--f-mono); color: var(--tenue); }
+  .carga.fuera { opacity: 0; pointer-events: none; }
+  .carga i { display: block; width: 36px; height: 36px; margin: 0 auto 12px; border-radius: 50%; border: 3px solid #ffffff22; border-top-color: var(--brasa); animation: gira 0.9s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .deck-tooltip { font-family: var(--f-sans) !important; }
+  @media (max-width: 700px) {
+    .titulo p { display: none; } .leyenda, .ayuda { display: none; }
+    .cab { flex-wrap: wrap; } .modo { margin-left: 0; width: 100%; }
+    .anio { bottom: calc(108px + env(safe-area-inset-bottom)); } .anio span { font-size: 13px; max-width: 30ch; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div id="lienzo" aria-label="Mapa 3D de la actividad de fuego en México"></div>
+<div class="carga" id="carga"><div><i></i>Levantando 24 años de fuego…</div></div>
+<header class="cab">
+  <a class="volver" href="/" id="volver">← Volver</a>
+  <div class="titulo"><h1>24 años de fuego en 3D</h1><p>Cada columna = celda de 0.25° · altura y color = eventos armonizados</p></div>
+  <label class="fire-switch" title="Modo día / noche"><input type="checkbox" checked aria-label="Modo noche"><span class="fs-pista"><span class="fs-estrellas"></span><span class="fs-chispas"><i></i><i></i><i></i><i></i><i></i></span><span class="fs-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gl3" x1="0" y1="1" x2="0" y2="0"><stop offset="0" class="fs-c1"/><stop offset="1" class="fs-c2"/></linearGradient></defs><path d="M12.3 2.2c.9 3.2-1.7 4.7-1.7 7.4 0 1.6 1.2 2.8 2.7 2.8 2 0 2.8-1.8 2.3-3.7 2.3 1.9 3.6 4.2 3.6 6.6A7.2 7.2 0 0 1 4.8 15.3c0-4.3 3.9-6.3 7.5-13.1z" fill="url(#gl3)"/><path d="M12 21.6a3.4 3.4 0 0 1-3.4-3.4c0-2.2 2-3.2 3-5.4.6 1.7 3.8 3 3.8 5.4a3.4 3.4 0 0 1-3.4 3.4z" class="fs-nucleo"/></svg></span></span></label>
+  <div class="modo" role="radiogroup" aria-label="Qué mostrar">
+    <button type="button" data-m="anio" class="sel" role="radio" aria-checked="true">Por año</button>
+    <button type="button" data-m="acum" role="radio" aria-checked="false">Acumulado</button>
+  </div>
+</header>
+<div class="anio" aria-live="polite"><b id="v-anio">2002</b><span id="v-dato">—</span><small id="v-sensor">MODIS convertido</small></div>
+<p class="ayuda">Arrastra para girar · rueda o pellizco para acercar</p>
+<div class="panel">
+  <button class="play" id="play" aria-label="Reproducir"><svg viewBox="0 0 24 24" id="ico-play"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg></button>
+  <div class="barras" id="barras" role="slider" aria-label="Año" tabindex="0"></div>
+  <div class="leyenda"><span>eventos por celda</span><div class="rampa"></div><div><span>pocos</span><span id="v-max">muchos</span></div></div>
+</div>
+
+<script src="/static/vendor/deckgl-9.4.1.min.js"></script>
+<script>
+(async () => {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = s => document.querySelector(s);
+  const RAMPA = [[96, 26, 10], [150, 40, 12], [204, 64, 20], [240, 104, 38], [255, 160, 70], [255, 222, 150]];   // brasa oscura → incandescente
+  const [T, tierra] = await Promise.all([fetch('/api/timelapse').then(r => r.json()), fetch('/static/tierra.json').then(r => r.json())]);
+
+  // ---- totales por celda y año (y acumulados)
+  const anios = [...new Set(T.meses.map(m => m[0]))];
+  const porAnio = anios.map(() => new Float32Array(T.celdas.length));
+  T.meses.forEach(([y], i) => { const a = porAnio[anios.indexOf(y)]; T.datos[i].forEach(([k, v]) => { a[k] += v; }); });
+  const acum = porAnio.map((_, i) => { const s = new Float32Array(T.celdas.length); for (let j = 0; j <= i; j++) porAnio[j].forEach((v, k) => { s[k] += v; }); return s; });
+  const totAnio = porAnio.map(a => a.reduce((x, y) => x + y, 0));
+  const maxAnio = Math.max(...porAnio.map(a => Math.max(...a))), maxAcum = Math.max(...acum[acum.length - 1]);
+  const celdas = T.celdas.map(([lat, lon], k) => ({ k, lat, lon }));
+
+  let i = anios.indexOf(2019) >= 0 ? anios.indexOf(2019) : 0, modo = 'anio', crecer = 0, claro = false;
+  // ---- día / noche (mismo interruptor y preferencia que el resto de IGNIS)
+  const sw = document.querySelector('.fire-switch input');
+  const tema = noche => { claro = !noche; document.documentElement.dataset.theme = noche ? 'dark' : 'light'; sw.checked = noche;
+    try { localStorage.setItem('ignis-tema', noche ? 'dark' : 'light'); } catch (e) {} if (typeof D !== 'undefined') D.setProps({ layers: capas() }); };
+  let guardado = null; try { guardado = localStorage.getItem('ignis-tema'); } catch (e) {}
+  sw.onchange = () => tema(sw.checked);
+  const valores = () => (modo === 'anio' ? porAnio : acum)[i];
+  const maxModo = () => modo === 'anio' ? maxAnio : maxAcum;
+  const color = t => { const s = Math.sqrt(t), n = Math.min(5, Math.floor(s * 6)); return [...RAMPA[n], t > 0 ? Math.round(150 + 105 * s) : 0]; };
+
+  // ---- barras de años (línea de tiempo)
+  const bar = $('#barras'), maxTot = Math.max(...totAnio);
+  bar.innerHTML = anios.map((y, k) => `<i title="${y}: ${Math.round(totAnio[k]).toLocaleString('es-MX')} eventos" class="${y < 2012 ? 'modis' : ''}" style="height:${Math.max(6, 100 * totAnio[k] / maxTot)}%"></i>`).join('');
+  const elegirPorX = x => { const r = bar.getBoundingClientRect(); ir(Math.max(0, Math.min(anios.length - 1, Math.floor((x - r.left) / r.width * anios.length)))); };
+  bar.addEventListener('pointerdown', e => { pausa(); try { bar.setPointerCapture(e.pointerId); } catch (_) {} elegirPorX(e.clientX); bar.onpointermove = ev => elegirPorX(ev.clientX); });
+  bar.addEventListener('pointerup', () => { bar.onpointermove = null; });
+  bar.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { pausa(); ir(Math.min(anios.length - 1, i + 1)); } if (e.key === 'ArrowLeft') { pausa(); ir(Math.max(0, i - 1)); } });
+
+  // ---- cámara que gira sola hasta que la tocas
+  const movil = innerWidth < 700;
+  let vista = { longitude: -101.5, latitude: movil ? 21.5 : 22.6, zoom: movil ? 3.55 : 4.5, pitch: 55, bearing: -18, maxPitch: 80, minZoom: 3, maxZoom: 9 };
+  let girar = !RM, quieto = null;
+
+  const capas = () => [
+    new deck.PathLayer({ id: 'costa', data: tierra, getPath: d => d, getColor: claro ? [60, 40, 30, 110] : [255, 236, 220, 70], widthUnits: 'pixels', getWidth: 1.2, updateTriggers: { getColor: claro } }),
+    new deck.ColumnLayer({
+      id: 'fuego', data: celdas, diskResolution: 4, angle: 45, radius: 12500, extruded: true, pickable: true, coverage: .92,
+      elevationScale: crecer,
+      getPosition: d => [d.lon, d.lat],
+      getElevation: d => { const v = valores()[d.k]; return v > 0 ? Math.pow(v / maxModo(), .6) * 620000 : 0; },
+      getFillColor: d => color(valores()[d.k] / maxModo()),
+      material: { ambient: .55, diffuse: .6, shininess: 40, specularColor: [255, 200, 150] },
+      updateTriggers: { getElevation: [i, modo], getFillColor: [i, modo] },
+      transitions: RM ? {} : { getElevation: { duration: 650, easing: t => 1 - Math.pow(1 - t, 3) }, getFillColor: 500 },
+    }),
+  ];
+  const D = new deck.Deck({
+    parent: $('#lienzo'), viewState: vista, controller: { inertia: true }, layers: capas(),
+    onViewStateChange: ({ viewState, interactionState }) => {
+      vista = viewState; D.setProps({ viewState: vista });
+      if (interactionState && (interactionState.isDragging || interactionState.isZooming || interactionState.isRotating || interactionState.isPanning)) {
+        girar = false; clearTimeout(quieto); quieto = setTimeout(() => { girar = !RM; }, 7000);
+      }
+    },
+    getTooltip: ({ object }) => {
+      if (!object) return null; const v = valores()[object.k]; if (!v) return null;
+      return { html: `<b style="font-size:16px">${Math.round(v).toLocaleString('es-MX')} eventos</b><br><span style="opacity:.75">${object.lat.toFixed(2)}°, ${object.lon.toFixed(2)}° · ${modo === 'anio' ? anios[i] : '2002–' + anios[i]}</span>`,
+        style: { background: claro ? '#fffffff0' : '#1c1917f0', color: claro ? '#1c1917' : '#fff6ef', border: '1px solid ' + (claro ? '#ddd6cc' : '#3a3633'), borderRadius: '10px', padding: '8px 10px', fontSize: '13px' } };
+    },
+  });
+
+  function pintar() {
+    $('#v-anio').textContent = modo === 'anio' ? anios[i] : `2002–${anios[i]}`;
+    $('#v-anio').classList.toggle('largo', modo === 'acum');
+    const tot = modo === 'anio' ? totAnio[i] : totAnio.slice(0, i + 1).reduce((a, b) => a + b, 0);
+    const celdasConFuego = valores().reduce((n, v) => n + (v > 0), 0);
+    $('#v-dato').innerHTML = `<em>${Math.round(tot).toLocaleString('es-MX')}</em> eventos de fuego en <em>${celdasConFuego.toLocaleString('es-MX')}</em> celdas` + (anios[i] === anios[anios.length - 1] ? ' (año en curso)' : '');
+    $('#v-sensor').textContent = anios[i] < 2012 ? 'MODIS convertido a escala VIIRS' : 'VIIRS';
+    $('#v-max').textContent = Math.round(maxModo()).toLocaleString('es-MX');
+    [...bar.children].forEach((b, k) => { b.classList.toggle('sel', k === i); b.classList.toggle('pasado', modo === 'acum' && k < i); });
+    bar.setAttribute('aria-valuenow', anios[i]); bar.setAttribute('aria-valuetext', String(anios[i]));
+    D.setProps({ layers: capas() });
+  }
+  function ir(k) { if (k === i) return; i = k; pintar(); }
+
+  // ---- reproducir año por año
+  let play = null;
+  const ICO_PLAY = '<path d="M7 4.5v15l13-7.5z" fill="currentColor"/>', ICO_PAUSA = '<path d="M7 4h4v16H7zM13 4h4v16h-4z" fill="currentColor"/>';
+  function pausa() { clearInterval(play); play = null; $('#ico-play').innerHTML = ICO_PLAY; $('#play').setAttribute('aria-label', 'Reproducir'); }
+  $('#play').onclick = () => {
+    if (play) return pausa();
+    if (i === anios.length - 1) ir(0);
+    $('#ico-play').innerHTML = ICO_PAUSA; $('#play').setAttribute('aria-label', 'Pausar');
+    play = setInterval(() => { if (i >= anios.length - 1) return pausa(); ir(i + 1); }, 1100);
+  };
+  document.querySelectorAll('.modo button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.modo button').forEach(x => { x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', x === b); });
+    modo = b.dataset.m; pintar();
+  });
+
+  // ---- entrada: las columnas se levantan del suelo y la cámara empieza a girar
+  tema(guardado ? guardado === 'dark' : true);
+  pintar();
+  $('#carga').classList.add('fuera');
+  const t0 = performance.now();
+  const levantar = now => { crecer = RM ? 1 : Math.min(1, (now - t0) / 1600); crecer = 1 - Math.pow(1 - crecer, 3); D.setProps({ layers: capas() }); if (crecer < 1) requestAnimationFrame(levantar); };
+  requestAnimationFrame(levantar);
+  let previo = performance.now();
+  const rotar = now => { const dt = now - previo; previo = now; if (girar && !document.hidden) { vista = { ...vista, bearing: vista.bearing + dt * .004 }; D.setProps({ viewState: vista }); } requestAnimationFrame(rotar); };
+  requestAnimationFrame(rotar);
+  const origen = document.referrer.includes('/control') ? '/control' : '/';
+  $('#volver').href = origen;
+  $('#volver').onclick = e => { if (history.length <= 1) { e.preventDefault(); window.close(); setTimeout(() => { location.href = origen; }, 150); } else { e.preventDefault(); history.back(); } };
+})();
+</script>
+</body>
+</html>
